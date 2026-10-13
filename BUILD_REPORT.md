@@ -10,7 +10,7 @@ The source Nook project was not edited.
 - Added seven daily quote reminders and three configurable starter photos.
 - Quotes use the local calendar day. Photos change daily; Next image keeps a manual selection until the next day.
 - Added saved widget order and Small, Medium, and Large sizes. Notes start Large.
-- Arrange widgets exposes drag handles, keyboard-accessible move buttons, and size selectors. Positions snap to the grid.
+- Arrange widgets exposes drag handles, keyboard-accessible move buttons, and size buttons. Positions snap to the grid.
 - Reset layout restores starter order and sizes while preserving personal content.
 - Added empty-page guidance and a photo failure message.
 - Kept the current visual design and responsive single-column layout.
@@ -32,6 +32,7 @@ For Chrome or Edge, run `pnpm build:extension` and load `dist` as an unpacked ex
 - Browser: dragged the note onto Rituals; the displayed order changed.
 - Browser: move buttons changed order; Medium note size persisted after reload.
 - Browser: Reset layout restored Large notes and starter order without changing note text.
+- Follow-up: Small, Medium, and Large buttons replaced the menu. Clicking Medium and Large changed the note size and selected state; the build passed.
 - Desktop and 390-pixel narrow layout checked. Narrow document content width matched viewport width; no horizontal overflow.
 - Fixed the observed dark-theme quote contrast issue and replaced the first drag implementation with pointer-based handles after a failed browser drag.
 - Mechanical design scan reported two inherited font-choice warnings for Instrument Sans. The existing font was retained to preserve the reference design; no other findings were reported.
@@ -47,7 +48,7 @@ For Chrome or Edge, run `pnpm build:extension` and load `dist` as an unpacked ex
 ## User attention
 
 Initial release: one scope question answered.
-This update: two optional questions asked about controls and image timing; no reply was available during implementation. Defaults follow the recommendations: drag plus size controls, daily photos plus Next image.
+This update: two optional questions answered. The user confirmed drag plus size buttons and daily photos plus Next image. The initial size menu was changed to buttons to match that choice.
 Filesystem writes outside the original workspace required sandbox approval. No additional product approval was needed.
 
 See `BUILD_BRIEF.md`, `DECISIONS.md`, and `CUSTOMIZATION.md`.

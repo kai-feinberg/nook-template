@@ -367,11 +367,16 @@ export function App() {
                   onClick={() => reorder(widgetId, visibleWidgets[index - 1])}><ArrowUp size={16} /></button>
                 <button type="button" aria-label={`Move ${widgetLabels[widgetId]} later`} disabled={index === visibleWidgets.length - 1}
                   onClick={() => reorder(widgetId, visibleWidgets[index + 1])}><ArrowDown size={16} /></button>
-                <label className="piece-size-label"><span className="sr-only">{widgetLabels[widgetId]} size</span>
-                  <select value={state.settings.widgetSizes[widgetId]} onChange={event => resize(widgetId, event.target.value as WidgetSize)}>
-                    <option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option>
-                  </select>
-                </label>
+                <div className="piece-sizes" role="group" aria-label={`${widgetLabels[widgetId]} size`}>
+                  {(["small", "medium", "large"] as WidgetSize[]).map(size => (
+                    <button key={size} type="button"
+                      aria-label={`Set ${widgetLabels[widgetId]} size to ${size}`}
+                      aria-pressed={state.settings.widgetSizes[widgetId] === size}
+                      onClick={() => resize(widgetId, size)}>
+                      {size[0].toUpperCase() + size.slice(1)}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : null}
             <WidgetRenderer widgetId={widgetId} state={state} updateState={updateState} now={now} />

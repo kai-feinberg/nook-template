@@ -1516,3 +1516,9 @@ select:focus-visible, .piece-controls button:focus-visible { outline: 2px solid 
 .arrange-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .arrange-actions .reset-layout { background: var(--field-bg); color: var(--soft-ink); border: 1px solid var(--card-border); }
 @media (max-width: 680px) { .arrange-bar { flex-wrap: wrap; } .arrange-actions { width: 100%; justify-content: flex-end; } }
+
+.piece-controls { flex-wrap: wrap; }
+.piece-sizes { display: flex; flex: 0 0 100%; gap: 4px; padding: 0 4px 4px; }
+.piece-sizes button { flex: 1; width: auto; min-height: 36px; font-size: .75rem; border: 1px solid var(--card-border); }
+.piece-sizes button[aria-pressed="true"] { color: var(--cloud-paper); background: var(--soft-ink); }
+@media (max-width: 680px) { .piece-sizes button { min-height: 40px; } }

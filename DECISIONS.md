@@ -21,3 +21,5 @@
 - User requirement: Enter personal quotes and reminders in Settings, rotate them daily, store a background image-generation prompt, and deliver a README with instructions and screenshots.
 - Agent decision: Separate starter and personal daily-word collections. Add optional attribution, edit controls, a 100-entry limit, and local persistence. Keep the date-based selection used for photos.
 - Agent decision: Save the image prompt as a Markdown file; do not generate an image without a request to do so. Use a separate localhost origin for documentation screenshots to preserve the user's working content.
+
+- User requirement: Bulk-add quotes and upload/configure a background directly. Bulk input uses one entry per line with optional ` | Author`; file-backed wallpaper controls save locally, with a separate storage record from daily photos.

@@ -55,3 +55,13 @@ The browser may use its normal HTTP cache, but the app does not promise an offli
 ## Errors
 
 Unsupported types, unreadable files, oversized images, and a full collection show a message. Database failure keeps the saved collection unchanged. A failed remote image shows a recovery message; choose a different collection in Settings or check the connection.
+
+## Page background image
+
+Use **Settings → Background image** to upload a wallpaper without editing code. It uses the same supported file types and 8 MB file limit as daily photos. The single wallpaper file is stored in the `background` store of the same IndexedDB database, under the key `wallpaper`; daily photos remain in the `photos` store. The database upgrade preserves existing photo records.
+
+The wallpaper stays fixed until you replace it. Its enabled state, fit, position, and dimming are saved with the dashboard settings. Fill screen uses `cover`, Show whole image uses `contain`, and Repeat image tiles the file. Center, Top, and Bottom choose its anchor point. Dimming adds a dark overlay from 0–80%.
+
+Turn off **Use this background image** to return to the selected theme. The saved file stays available. Resetting the dashboard disables it but does not delete its file. A replacement overwrites the previous wallpaper file; keep the originals if you want to use them again.
+
+The wallpaper is recreated from its Blob on load. Its temporary object URL is released when replaced or unloaded. Background upload does not send the file to a server, add it to the repo, or change the rotating photo collection. For an image that should ship with all clones, use the bundled-background steps in [the background prompt guide](docs/prompts/background-image.md).

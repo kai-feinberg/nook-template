@@ -12,9 +12,9 @@ A cloneable Chrome and Edge extension with a quiet dashboard. Make room for your
 - Resize from the bottom-right corner. The handle appears on hover or keyboard focus, and stays visible on touch devices.
 - Edit your note directly on the page.
 - Add links and rituals in Settings; show or hide each widget.
-- Add your own quotes and reminders, with optional authors. One entry rotates in each day.
+- Add your own quotes and reminders, one at a time or in bulk, with optional authors. One entry rotates in each day.
 - Choose local photos in Settings or use the starter collection. Photos change daily.
-- Pick a background and light or dark theme.
+- Upload a page background and adjust its fit, position, and dimming, or use the built-in themes.
 
 Your content and layouts stay on the device. Layouts are saved separately for wide, medium, and narrow screens. There is no cloud sync or portable backup yet.
 
@@ -73,6 +73,18 @@ Settings → Layout offers **Balanced** and **Focus** starters. Choosing one res
 
 ![The Settings editor for adding and editing personal quotes and reminders](docs/images/quotes-reminders.png)
 
+### Bulk entry
+
+Open **Add several at once** in Quotes and reminders. Paste one entry per line. Use `Quote | Author` when you want attribution:
+
+```text
+Drink water.
+Take one small step today.
+Stay curious. | Personal reminder
+```
+
+The preview shows the new entries and duplicates it will skip. Blank lines and exact duplicates are ignored. Select **Add entries** to save the batch. A batch that exceeds the 100-entry limit is blocked until it fits; it is not silently cut short.
+
 Use **Starter words** to return to the default collection. Personal entries stay saved when you switch collections. There is room for 100 entries, with up to 400 characters each and an optional author of up to 100 characters.
 
 Selection uses the local calendar date. The same collection shows the same entry in every tab for that day. Entries change at midnight, or when a sleeping tab becomes visible again. Adding or removing entries can change today's selection. Blank entries are skipped; an empty personal collection uses the starter words.
@@ -105,9 +117,19 @@ Edit starter quotes and image collections in the config when you want them to sh
 
 When running multiple clones at once, give each a different Portless name in the `dev` script. Brand changes also need an updated manifest name, HTML title, and package name.
 
+## Upload a page background
+
+Open **Settings → Background image**. Choose a local image or drop one onto the upload area. JPG, PNG, WebP, AVIF, and GIF files up to 8 MB are supported.
+
+The image appears immediately and is saved on this device. Adjust **Image fit** (Fill screen, Show whole image, or Repeat image), **Position** (Center, Top, or Bottom), and **Dimming** (0–80%). Changes preview on the page and save automatically. Turn off **Use this background image** to return to the selected theme without deleting the file.
+
+![Local background upload with fit, position, and dimming controls](docs/images/background-settings.png)
+
+The wallpaper is stored separately from your daily photo collection. It does not rotate and does not count toward the 24-photo limit. Uploading a replacement does not change daily photos. Theme changes still control widget colors while a custom background is active.
+
 ## Generate a background
 
-A reusable day and night wallpaper prompt is saved in [docs/prompts/background-image.md](docs/prompts/background-image.md). The file includes composition guidance, export suggestions, and the CSS needed to load the generated result. It creates a quiet background behind the widgets; it does not replace the daily photo collection. No new background image has been generated yet.
+A reusable day and night wallpaper prompt is saved in [docs/prompts/background-image.md](docs/prompts/background-image.md). The file includes composition guidance, export suggestions, and two loading methods: upload in Settings for personal use, or bundle the image in code for every clone. It creates a quiet background behind the widgets; it does not replace the daily photo collection. No new background image has been generated yet.
 
 ## Data and network access
 

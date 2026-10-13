@@ -33,6 +33,7 @@ export type NookSettings = {
       type: "solid";
       colorToken: "butterCream" | "cloudPaper" | "oatMist" | "nightSky" | "butterCreamHalftone" | "nightSkyHalftone";
     };
+    wallpaper: { enabled: boolean; fit: "cover" | "contain" | "tile"; position: "center" | "top" | "bottom"; dim: number };
     showArtCaption: boolean;
     reducedMotionOverride: "system" | "reduced";
   };

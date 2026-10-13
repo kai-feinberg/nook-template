@@ -18,7 +18,7 @@ Settings → Your photos accepts local files through a picker or a drop area. Ph
 ## Validation
 
 - Production build and strict TypeScript check passed.
-- Eleven focused tests passed for local dates, rotation helpers, legacy order, default placement bounds and collisions, invalid coordinates, and photo validation.
+- Thirteen focused tests passed for local dates, rotation helpers, legacy order, default placement bounds and collisions, invalid coordinates, and photo validation.
 - User tested pointer dragging and resizing successfully, then reported lag. Browser rechecked dragging after the performance changes.
 - Browser confirmed a visible live placeholder and active dragged item with a zero-duration preview transition.
 - Keyboard resize changed the note height from 372 to 428 pixels, then restored it.
@@ -50,3 +50,11 @@ Use `pnpm build:extension` and load `dist` as an unpacked Chrome or Edge extensi
 ## User attention
 
 The user requested research before the interaction redesign. One research subagent compared official sources. No additional product questions were needed. The user supplied direct drag/resize test feedback, which guided the performance work. Filesystem writes in the requested sibling repo required sandbox approval.
+
+## Bulk words and direct background upload
+
+- Added bulk quote/reminder import with line-by-line preview, optional `Quote | Author` attribution, duplicate skipping, and an all-or-nothing capacity check.
+- Added local background upload and saved fit, position, dimming, and enabled controls. The separate IndexedDB wallpaper store preserves daily photo records and does not use photo collection capacity.
+- Browser: imported two new entries from three lines, skipped one exact duplicate, then confirmed all four saved entries after reload.
+- Browser: uploaded a bundled PNG as a test wallpaper, selected Show whole image and Top, set dimming to 35%, and reloaded. The custom image remained active, and computed CSS retained `contain`, top positioning, and the 0.35 overlay. The daily photo source stayed unchanged.
+- Added focused tests for bulk parsing, duplicate handling, optional attribution, oversized lines, and capacity rejection. Updated README, image storage guide, and generation prompt instructions.

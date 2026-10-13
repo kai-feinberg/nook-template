@@ -43,6 +43,10 @@ export function migrateNookState(stored: unknown): NookState {
   if (migrated.settings.photoSource !== "personal") migrated.settings.photoSource = "starter";
   migrated.widgets.dailyWords.items = normalizeWords(migrated.widgets.dailyWords.items);
   if (migrated.settings.wordsSource !== "personal") migrated.settings.wordsSource = "starter";
+  const wallpaper = migrated.settings.appearance.wallpaper;
+  if (!["cover", "contain", "tile"].includes(wallpaper.fit)) wallpaper.fit = "cover";
+  if (!["center", "top", "bottom"].includes(wallpaper.position)) wallpaper.position = "center";
+  wallpaper.dim = Number.isFinite(wallpaper.dim) ? Math.max(0, Math.min(80, wallpaper.dim)) : 20;
   const colorToken = migrated.settings.appearance.background.colorToken as string;
   if (colorToken === "starryNight" || colorToken === "campfireGlow" || colorToken === "moonlit") {
     migrated.settings.appearance.background.colorToken = "nightSky";

@@ -93,3 +93,20 @@ test("empty personal words fall back and saved entries are checked", () => {
   assert.notEqual(normalized[0].id, normalized[1].id);
   assert.equal(normalized[1].author, "");
 });
+
+import { parseBulkWords } from "../src/data/words.ts";
+
+test("bulk words ignore blank lines and duplicates, and preserve optional authors", () => {
+  const existing = [{id:"a",text:"Drink water.",author:""}];
+  const result = parseBulkWords("Drink water.\r\n\r\nTake one step.\nStay curious. | Personal reminder\nTake one step.", existing);
+  assert.equal(result.error, "");
+  assert.equal(result.skipped, 2);
+  assert.deepEqual(result.entries, [{text:"Take one step.",author:""},{text:"Stay curious.",author:"Personal reminder"}]);
+});
+
+test("bulk imports reject oversized entries and batches that exceed capacity", () => {
+  assert.match(parseBulkWords("x".repeat(401)).error, /Line 1/);
+  const existing = Array.from({length:100},(_,index)=>({id:String(index),text:`Entry ${index}`,author:""}));
+  assert.match(parseBulkWords("One more", existing).error, /Nothing will be added/);
+  assert.equal(parseBulkWords(" \n ").entries.length,0);
+});

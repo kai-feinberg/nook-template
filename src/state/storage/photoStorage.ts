@@ -5,8 +5,11 @@ const databaseName = "nook-template-photos";
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(databaseName, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore("photos", { keyPath: "id" });
+    const request = indexedDB.open(databaseName, 2);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains("photos")) request.result.createObjectStore("photos", { keyPath: "id" });
+      if (!request.result.objectStoreNames.contains("background")) request.result.createObjectStore("background", { keyPath: "id" });
+    };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
     request.onblocked = () => reject(new Error("Close other Nook tabs and try again."));
@@ -64,5 +67,31 @@ export async function removePhoto(id: string): Promise<void> {
     transaction.oncomplete = () => { database.close(); resolve(); };
     transaction.onabort = () => { database.close(); reject(new Error("Could not remove the photo. Try again.")); };
     transaction.onerror = () => { database.close(); reject(new Error("Could not remove the photo. Try again.")); };
+  });
+}
+
+export async function readBackground(): Promise<StoredPhoto | null> {
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction("background", "readonly");
+    const request = transaction.objectStore("background").get("wallpaper");
+    transaction.oncomplete = () => { database.close(); resolve(request.result ?? null); };
+    transaction.onabort = () => { database.close(); reject(transaction.error); };
+    transaction.onerror = () => { database.close(); reject(transaction.error); };
+  });
+}
+
+export async function saveBackground(file: File): Promise<void> {
+  const error = photoValidationError([file]);
+  if (error) throw new Error(error);
+  try { const bitmap = await createImageBitmap(file); bitmap.close(); }
+  catch { throw new Error("Could not read this image. Choose another file."); }
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction("background", "readwrite");
+    transaction.objectStore("background").put({id: "wallpaper", name: file.name, addedAt: Date.now(), blob: file} satisfies StoredPhoto);
+    transaction.oncomplete = () => { database.close(); resolve(); };
+    transaction.onabort = () => { database.close(); reject(new Error("Could not save the background. Check browser storage and try again.")); };
+    transaction.onerror = () => { database.close(); reject(new Error("Could not save the background. Check browser storage and try again.")); };
   });
 }

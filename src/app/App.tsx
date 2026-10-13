@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { curatedArt } from "../data/curatedArt.ts";
-import { dailyWord } from "../data/words.ts";
+import { dailyWord, parseBulkWords } from "../data/words.ts";
 import { dailyItem } from "../data/rotation.ts";
 import { DashboardGrid } from "./DashboardGrid.tsx";
 import { usePhotoLibrary } from "./PhotoLibrary.tsx";
@@ -150,6 +150,7 @@ function WidgetCard({
 export function App() {
   const [state, setState] = useState<NookState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const imageLibrary = usePhotoLibrary();
   const saveTimer = useRef<number | null>(null);
   const now = useDailyDate();
 
@@ -268,11 +269,20 @@ export function App() {
     );
   }
 
+  const wallpaper = state.settings.appearance.wallpaper;
+  const wallpaperImage = wallpaper.enabled ? imageLibrary.background : null;
+  const wallpaperStyle = wallpaperImage ? {
+    backgroundImage: `linear-gradient(rgba(0,0,0,${wallpaper.dim / 100}), rgba(0,0,0,${wallpaper.dim / 100})), url("${wallpaperImage.imageUrl}")`,
+    backgroundSize: wallpaper.fit === "tile" ? "auto, auto" : `${wallpaper.fit}, ${wallpaper.fit}`,
+    backgroundPosition: `${wallpaper.position}, ${wallpaper.position}`,
+    backgroundRepeat: wallpaper.fit === "tile" ? "no-repeat, repeat" : "no-repeat, no-repeat",
+    backgroundAttachment: "fixed" as const
+  } : undefined;
   const isNightTheme = darkBackgrounds.has(state.settings.appearance.background.colorToken);
 
   return (
     <>
-    <main className={`app-shell bg-${state.settings.appearance.background.colorToken}`}>
+    <main className={`app-shell bg-${state.settings.appearance.background.colorToken} ${wallpaperImage ? "custom-wallpaper" : ""}`} style={wallpaperStyle}>
       <div className="page-decor" aria-hidden="true">
         <div className="night-sky">
           <span className="stars stars-near" />
@@ -525,6 +535,17 @@ function SettingsPanel({
   const [linkDraft, setLinkDraft] = useState({ label: "", url: "" });
   const [ritualDraft, setRitualDraft] = useState("");
   const [wordDraft, setWordDraft] = useState({ text: "", author: "" });
+  const [bulkWords, setBulkWords] = useState("");
+  const [bulkMessage, setBulkMessage] = useState("");
+  const bulkPreview = useMemo(() => parseBulkWords(bulkWords, state.widgets.dailyWords.items), [bulkWords, state.widgets.dailyWords.items]);
+  function addBulkWords(event: FormEvent) {
+    event.preventDefault();
+    if (bulkPreview.error || !bulkPreview.entries.length) return;
+    const entries = bulkPreview.entries.map(entry => ({ ...entry, id: makeId("word") }));
+    updateState(current => ({ ...current, settings: { ...current.settings, wordsSource: "personal" },
+      widgets: { ...current.widgets, dailyWords: { items: [...current.widgets.dailyWords.items, ...entries] } } }));
+    setBulkMessage(`Added ${entries.length} ${entries.length === 1 ? "entry" : "entries"}.`); setBulkWords("");
+  }
   function addWord(event: FormEvent) {
     event.preventDefault();
     const text = wordDraft.text.trim();
@@ -540,6 +561,17 @@ function SettingsPanel({
   const [draggingPhotos, setDraggingPhotos] = useState(false);
   async function importPhotos(files: File[]) {
     if (await library.add(files)) updateState(current => ({ ...current, settings: { ...current.settings, photoSource: "personal" } }));
+  }
+
+  async function importBackground(file: File) {
+    if (await library.setBackground(file)) updateState(current => ({ ...current, settings: { ...current.settings, appearance: {
+      ...current.settings.appearance, wallpaper: { ...current.settings.appearance.wallpaper, enabled: true }
+    } } }));
+  }
+  function updateWallpaper(patch: Partial<NookState["settings"]["appearance"]["wallpaper"]>) {
+    updateState(current => ({ ...current, settings: { ...current.settings, appearance: {
+      ...current.settings.appearance, wallpaper: { ...current.settings.appearance.wallpaper, ...patch }
+    } } }));
   }
 
   function addLink(event: FormEvent) {
@@ -654,6 +686,19 @@ function SettingsPanel({
             <label>Author (optional)<input aria-label="New quote author" maxLength={100} value={wordDraft.author} onChange={event => setWordDraft({ ...wordDraft, author: event.target.value })} placeholder="Leave blank for a personal reminder" /></label>
             <button type="submit" disabled={!wordDraft.text.trim() || state.widgets.dailyWords.items.length >= 100}>Add quote or reminder</button>
           </form>
+          <details className="bulk-words">
+            <summary>Add several at once</summary>
+            <form className="word-form" onSubmit={addBulkWords}>
+              <label>One quote or reminder per line<textarea aria-label="Bulk quotes and reminders" rows={6} maxLength={50000} value={bulkWords} onChange={event => { setBulkWords(event.target.value); setBulkMessage(""); }} placeholder={"Drink water.\nTake one small step.\nStay curious. | Personal reminder"} /></label>
+              <p className="settings-help">Use <code>Quote | Author</code> for optional attribution. Blank lines and exact duplicates are skipped.</p>
+              {bulkWords.trim() ? <div className="bulk-preview"><strong>{bulkPreview.entries.length} new entries{bulkPreview.skipped ? ` · ${bulkPreview.skipped} ${bulkPreview.skipped === 1 ? "duplicate" : "duplicates"} skipped` : ""}</strong>
+                <ul>{bulkPreview.entries.slice(0, 4).map((entry, index) => <li key={index}>{entry.text}{entry.author ? ` — ${entry.author}` : ""}</li>)}</ul>
+              </div> : null}
+              {bulkPreview.error ? <p className="photo-error" role="alert">{bulkPreview.error}</p> : null}
+              <button type="submit" disabled={!!bulkPreview.error || !bulkPreview.entries.length}>Add {bulkPreview.entries.length || "all"} {bulkPreview.entries.length === 1 ? "entry" : "entries"}</button>
+              <p className="settings-help" role="status">{bulkMessage}</p>
+            </form>
+          </details>
           <p className="settings-help">{state.widgets.dailyWords.items.length} of 100 entries · Saved on this device. Adding or removing entries can change today's selection.</p>
           <div className="word-editors">{state.widgets.dailyWords.items.map((entry, index) => <div key={entry.id} className="word-editor">
             <textarea aria-label={`Quote or reminder ${index + 1}`} rows={2} maxLength={400} value={entry.text} onChange={event => updateState(current => ({ ...current, widgets: { ...current.widgets, dailyWords: { items: current.widgets.dailyWords.items.map(item => item.id === entry.id ? { ...item, text: event.target.value } : item) } } }))} />
@@ -846,6 +891,27 @@ function SettingsPanel({
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="settings-section">
+          <h3>Background image</h3>
+          <p className="settings-help">Upload a wallpaper, then adjust its fit, position, and dimming. Changes preview on the page and save automatically.</p>
+          <label className="photo-drop-zone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); if (!library.backgroundBusy && event.dataTransfer.files[0]) void importBackground(event.dataTransfer.files[0]); }}>
+            <Image size={24} /><strong>{library.backgroundBusy ? "Saving background…" : "Choose a background or drop an image"}</strong><span>JPG, PNG, WebP, AVIF, GIF · Up to 8 MB</span>
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" aria-label="Upload background image" disabled={library.backgroundBusy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void importBackground(file); }} />
+          </label>
+          {library.backgroundError ? <p className="photo-error" role="alert">{library.backgroundError}</p> : null}
+          {library.background ? <>
+            <img className="background-thumbnail" src={library.background.imageUrl} alt="Saved background preview" />
+            <p className="settings-help">{library.background.title} · Stored only on this device.</p>
+            <div className="toggle-list"><label><span>Use this background image</span><input type="checkbox" checked={state.settings.appearance.wallpaper.enabled} onChange={event => updateWallpaper({enabled:event.target.checked})} /></label></div>
+            <div className="background-controls">
+              <label>Image fit<select aria-label="Background image fit" value={state.settings.appearance.wallpaper.fit} onChange={event => updateWallpaper({fit:event.target.value as "cover" | "contain" | "tile"})}><option value="cover">Fill screen</option><option value="contain">Show whole image</option><option value="tile">Repeat image</option></select></label>
+              <label>Position<select aria-label="Background image position" value={state.settings.appearance.wallpaper.position} onChange={event => updateWallpaper({position:event.target.value as "center" | "top" | "bottom"})}><option value="center">Center</option><option value="top">Top</option><option value="bottom">Bottom</option></select></label>
+              <label className="background-dimming">Dimming: {state.settings.appearance.wallpaper.dim}%<input aria-label="Background dimming" type="range" min={0} max={80} step={5} value={state.settings.appearance.wallpaper.dim} onChange={event => updateWallpaper({dim:Number(event.target.value)})} /></label>
+            </div>
+          </> : null}
+          <p className="settings-help">This image is separate from your daily photos. Turn it off to return to the selected theme. Replacing it keeps your daily photos unchanged.</p>
         </section>
 
         <section className="settings-section">

@@ -16,7 +16,11 @@ Use the same composition, but replace the palette and light sentence with:
 Deep ink navy and muted slate blue, with restrained warm cream highlights. Very soft evening light and a sparse scattering of tiny, dim stars near the outer edges. Keep the center dark and even, with no bright nebula, prominent moon, or high-contrast celestial object.
 ```
 
-## Use the result
+## Use it directly in Settings
+
+Open **Settings → Background image**, upload the generated file, then choose its fit, position, and dimming. This needs no code change. The file stays on the device and is not shared with people who clone the repo.
+
+## Include it with every clone
 
 1. Review the image behind the real widgets at wide and narrow sizes. Crop safely; keep important details away from the center.
 2. Save a WebP or PNG in `src/app/assets/`, for example `background-day.webp`. WebP is usually smaller; aim for a file under 1 MB when quality allows.

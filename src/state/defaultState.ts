@@ -20,6 +20,7 @@ export const defaultState: NookState = {
         type: "solid",
         colorToken: templateConfig.background
       },
+      wallpaper: { enabled: false, fit: "cover", position: "center", dim: 20 },
       showArtCaption: true,
       reducedMotionOverride: "system"
     }

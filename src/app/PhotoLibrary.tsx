@@ -1,13 +1,17 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { addPhotos, readPhotos, removePhoto } from "../state/storage/photoStorage.ts";
+import { addPhotos, readPhotos, removePhoto, readBackground, saveBackground } from "../state/storage/photoStorage.ts";
 import type { StoredPhoto } from "../state/storage/photoStorage.ts";
 
 export type Photo = { id: string; title: string; imageUrl: string; alt: string; sourceUrl: string };
-type Library = { photos: Photo[]; busy: boolean; ready: boolean; error: string; add: (files: File[]) => Promise<boolean>; remove: (id: string) => Promise<void> };
+type Library = { background: Photo | null; backgroundBusy: boolean; backgroundError: string; setBackground: (file: File) => Promise<boolean>; photos: Photo[]; busy: boolean; ready: boolean; error: string; add: (files: File[]) => Promise<boolean>; remove: (id: string) => Promise<void> };
 const PhotoContext = createContext<Library | null>(null);
 export function PhotoLibraryProvider({ children }: { children: ReactNode }) {
   const [stored, setStored] = useState<StoredPhoto[]>([]);
+  const [savedBackground, setSavedBackground] = useState<StoredPhoto | null>(null);
+  const [background, setBackgroundPhoto] = useState<Photo | null>(null);
+  const [backgroundBusy, setBackgroundBusy] = useState(false);
+  const [backgroundError, setBackgroundError] = useState("");
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
@@ -15,7 +19,7 @@ export function PhotoLibraryProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     async function load() {
-      try { const records = await readPhotos(); if (active) setStored(records); }
+      try { const [records, image] = await Promise.all([readPhotos(), readBackground()]); if (active) { setStored(records); setSavedBackground(image); } }
       catch { if (active) setError("Could not load your photos. Check browser storage and reload."); }
       finally { if (active) setReady(true); }
     }
@@ -29,6 +33,18 @@ export function PhotoLibraryProvider({ children }: { children: ReactNode }) {
     setPhotos(next);
     return () => next.forEach(photo => URL.revokeObjectURL(photo.imageUrl));
   }, [stored]);
+  useEffect(() => {
+    if (!savedBackground) { setBackgroundPhoto(null); return; }
+    const imageUrl = URL.createObjectURL(savedBackground.blob);
+    setBackgroundPhoto({ id: savedBackground.id, title: savedBackground.name, imageUrl, alt: "Custom page background", sourceUrl: "" });
+    return () => URL.revokeObjectURL(imageUrl);
+  }, [savedBackground]);
+  async function setBackground(file: File) {
+    setBackgroundBusy(true); setBackgroundError("");
+    try { await saveBackground(file); setSavedBackground(await readBackground()); notify(); return true; }
+    catch (error) { setBackgroundError(error instanceof Error ? error.message : "Could not save the background."); return false; }
+    finally { setBackgroundBusy(false); }
+  }
   function notify() { const channel = new BroadcastChannel("nook-template-photos"); channel.postMessage("changed"); channel.close(); }
   async function add(files: File[]) {
     setBusy(true); setError("");
@@ -42,6 +58,6 @@ export function PhotoLibraryProvider({ children }: { children: ReactNode }) {
     catch (error) { setError(error instanceof Error ? error.message : "Could not remove the photo. Try again."); }
     finally { setBusy(false); }
   }
-  return <PhotoContext.Provider value={{ photos, busy, ready, error, add, remove }}>{children}</PhotoContext.Provider>;
+  return <PhotoContext.Provider value={{ background, backgroundBusy, backgroundError, setBackground, photos, busy, ready, error, add, remove }}>{children}</PhotoContext.Provider>;
 }
 export function usePhotoLibrary() { const library = useContext(PhotoContext); if (!library) throw new Error("Photo library provider is missing."); return library; }

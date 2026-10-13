@@ -10,6 +10,8 @@ export const defaultState: NookState = {
   settings: {
     selectedLayout: templateConfig.layout,
     widgetVisibility: defaultWidgetVisibility,
+    widgetOrder: templateConfig.widgetOrder,
+    widgetSizes: templateConfig.widgetSizes,
     appearance: {
       background: {
         type: "solid",
@@ -38,13 +40,6 @@ export const defaultState: NookState = {
     curatedArt: {
       currentArtId: templateConfig.art[0]?.id ?? "",
       lastRotatedAt: now
-    }
-  },
-  cache: {
-    githubTrending: {
-      repositories: [],
-      fetchedAt: null,
-      stale: false
     }
   },
   meta: {

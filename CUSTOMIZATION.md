@@ -8,7 +8,7 @@ Keep each widget ID once in `widgetOrder`. The clock is a header control and doe
 
 ## Style
 
-Edit `src/app/styles/styles.css`. Color tokens and theme classes set the backgrounds. Layout rules sit in the same file. Replace the cloud, flower, and mascot imports in the config to change decorations. Remove the remote font import to use system fonts offline.
+Edit `src/app/styles/styles.css`. Color tokens and theme classes set the backgrounds. Layout rules sit in the same file. Replace the cloud and flower imports in the config to change decorations. Remove the remote font import to use system fonts offline.
 
 ## Add a widget
 
@@ -24,4 +24,10 @@ Change the config brand, the title in `src/app/index.html`, package name in `pac
 
 ## Scope
 
-This starter provides two fixed layouts. It does not include a drag-and-drop page builder. Users can change content and settings without editing code. Developers can replace components and styles.
+This starter uses a constrained grid with Small, Medium, and Large widget sizes. Users can drag to reorder or use move buttons. These controls save the layout locally. Balanced and Focus set size presets. On narrow screens, widgets stack in the saved order.
+
+## Rotation
+
+Quotes are picked by local calendar date. Photos rotate daily and can be advanced manually. Add or remove entries in the config arrays. Use unique photo IDs. Saved photo IDs that no longer exist fall back to a current collection entry.
+
+The quote collection contains original starter reminders; replace them with your own text or properly attributed quotes.

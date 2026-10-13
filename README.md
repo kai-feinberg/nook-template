@@ -28,19 +28,25 @@ After code changes, build again and select Reload on the extension card. Firefox
 
 ## Make it yours
 
-Edit `src/template.config.ts` for the name, tagline, quote, starter links, rituals, note, widget order, visible widgets, layout, background, artwork, and decorations. TypeScript checks the available layout and background choices.
+Edit `src/template.config.ts` for the name, tagline, quote collection, starter links, rituals, note, widget order, visible widgets, layout, background, artwork, and decorations. TypeScript checks the available layout and background choices.
 
 Settings lets each user change layouts, backgrounds, widget visibility, links, and rituals. Edit the note on the page. These changes are saved on the device. Code defaults apply on first use or after **Reset to starter dashboard**. Reset deletes personal settings after confirmation. Changes to branding, quotes, art, and widget order apply on each load.
 
 For deeper changes, see [CUSTOMIZATION.md](CUSTOMIZATION.md).
 
+## Arrange your page
+
+Select **Arrange widgets** in the top toolbar. Drag a handle onto another piece or use the earlier/later buttons. Select Small, Medium, or Large for each piece, then select Done. Pieces snap to a grid. Notes start at Large. Reset layout restores order and sizes without changing notes, links, or rituals. Mobile uses the saved order in one column.
+
+## Daily content
+
+Quotes change once per local calendar day. Photos change daily too. **Next image** advances the photo and keeps your choice until the next day. Edit `quotes` and `art` in `src/template.config.ts` to change the collections. An empty collection shows setup guidance. A failed photo shows a recovery message.
+
 ## Data and permissions
 
-No account, server, API key, or paid service is required. The extension uses `chrome.storage.local`. The web preview uses browser local storage. These are separate stores; they do not sync across devices.
+No account, server, API key, or paid service is required. The extension uses `chrome.storage.local`. The web preview uses browser local storage. These stores are separate and do not sync across devices. Personal content and layout stay on the device.
 
-GitHub Trending is off by default. If enabled, it requests GitHub through the extension worker. A failed refresh keeps the cached result and shows an error. The web preview cannot refresh this widget. Link icons use Google's favicon service. Font loading uses Google Fonts. Your browser contacts these services when it loads those assets. The bundled starter illustration is local.
-
-The manifest declares storage access and GitHub Trending host access. If you remove Trending, also remove its host permission and background worker.
+The extension declares only the storage permission. It has no background worker or host permissions. Starter photos load from Unsplash, link icons use Google's favicon service, and fonts use Google Fonts. The browser contacts these services when it loads assets. To use local photos, import them in the config. To use system fonts, remove the CSS font import.
 
 ## Share your version
 
@@ -49,6 +55,7 @@ This folder is a separate local Git repo. Create a remote repo, add its URL with
 ## Checks
 
 ```sh
+pnpm test
 pnpm typecheck
 pnpm build
 ```

@@ -6,20 +6,23 @@ export type WidgetId =
   | "quickLinks"
   | "personalNote"
   | "curatedArt"
-  | "githubTrending"
   | "clock";
+
+export type DashboardWidgetId = Exclude<WidgetId, "clock">;
+export type WidgetSize = "small" | "medium" | "large";
 
 export type NookState = {
   schemaVersion: 1;
   settings: NookSettings;
   widgets: WidgetState;
-  cache: NookCache;
   meta: NookMeta;
 };
 
 export type NookSettings = {
   selectedLayout: LayoutPresetId;
   widgetVisibility: Record<WidgetId, boolean>;
+  widgetOrder: DashboardWidgetId[];
+  widgetSizes: Record<DashboardWidgetId, WidgetSize>;
   appearance: {
     background: {
       type: "solid";
@@ -75,24 +78,6 @@ export type PersonalNoteWidgetState = {
 export type CuratedArtWidgetState = {
   currentArtId: string;
   lastRotatedAt: string;
-};
-
-export type NookCache = {
-  githubTrending: {
-    repositories: TrendingRepository[];
-    fetchedAt: string | null;
-    stale: boolean;
-  };
-};
-
-export type TrendingRepository = {
-  id: string;
-  owner: string;
-  name: string;
-  description: string;
-  language?: string;
-  stars?: number;
-  url: string;
 };
 
 export type NookMeta = {

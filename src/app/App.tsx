@@ -1,8 +1,12 @@
 import {
+  ArrowDown,
+  ArrowUp,
+  GripVertical,
+  LayoutGrid,
+  ChevronRight,
   Check,
   Clock3,
   ExternalLink,
-  Code2,
   Heart,
   Image,
   Link as LinkIcon,
@@ -17,15 +21,16 @@ import {
   X
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { curatedArt, ART_ROTATION_INTERVAL_MS } from "../data/curatedArt.ts";
-import { fetchTrendingText, parseTrendingRepos } from "../data/githubTrending.ts";
+import { curatedArt } from "../data/curatedArt.ts";
+import { dailyItem, localDay, nextItem } from "../data/rotation.ts";
+import { moveWidget } from "../layouts/grid.ts";
 import { layoutPresets, widgetLabels } from "../layouts/presets.ts";
 import { createDefaultState } from "../state/defaultState.ts";
 import { migrateNookState } from "../state/migrations.ts";
-import type { NookState, QuickLink, RitualItem, WidgetId } from "../state/schema.ts";
+import type { DashboardWidgetId, NookState, QuickLink, RitualItem, WidgetId, WidgetSize } from "../state/schema.ts";
 import { getNookStorage } from "../state/storage/nookStorage.ts";
 import { templateConfig } from "../template.config.ts";
-const { cloud: decorCloud, flower: decorFlower, mascot: nookFox } = templateConfig.decorations;
+const { cloud: decorCloud, flower: decorFlower } = templateConfig.decorations;
 const widgetOrder = templateConfig.widgetOrder;
 
 const backgroundOptions = [
@@ -132,6 +137,10 @@ function WidgetCard({
 export function App() {
   const [state, setState] = useState<NookState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [arranging, setArranging] = useState(false);
+  const dragSource = useRef<DashboardWidgetId | null>(null);
+  const [dropTarget, setDropTarget] = useState<DashboardWidgetId | null>(null);
+  const [layoutMessage, setLayoutMessage] = useState("");
   const saveTimer = useRef<number | null>(null);
   const now = useClock();
 
@@ -196,11 +205,30 @@ export function App() {
   }, [settingsOpen]);
 
   const preset = layoutPresets.find((item) => item.id === state?.settings.selectedLayout) ?? layoutPresets[0];
-  const visibleWidgets = widgetOrder.filter((id) => state?.settings.widgetVisibility[id]);
+  const visibleWidgets = state?.settings.widgetOrder.filter((id) => state.settings.widgetVisibility[id]) ?? [];
 
   const updateState = useCallback((updater: (current: NookState) => NookState) => {
     setState((current) => (current ? touch(updater(current)) : current));
   }, []);
+
+  const today = localDay(now);
+  useEffect(() => {
+    setState(current => current ? maybeRotateArt(current) : current);
+  }, [today]);
+
+  function reorder(id: DashboardWidgetId, target: DashboardWidgetId) {
+    updateState(current => ({ ...current, settings: {
+      ...current.settings, widgetOrder: moveWidget(current.settings.widgetOrder, id, target)
+    }}));
+    setLayoutMessage(`${widgetLabels[id]} moved.`);
+  }
+
+  function resize(id: DashboardWidgetId, size: WidgetSize) {
+    updateState(current => ({ ...current, settings: {
+      ...current.settings, widgetSizes: { ...current.settings.widgetSizes, [id]: size }
+    }}));
+    setLayoutMessage(`${widgetLabels[id]} set to ${size}.`);
+  }
 
   async function resetToDefault() {
     const confirmed = window.confirm(`Reset ${templateConfig.brand.name} to its starter dashboard?`);
@@ -259,7 +287,6 @@ export function App() {
         <img className="decor-flower" src={decorFlower} alt="" />
         <span className="decor-heart decor-heart-one">♡</span>
         <span className="decor-heart decor-heart-two">♡</span>
-        <img className="nook-pet" src={nookFox} alt="" />
       </div>
       <header className="topbar">
         <div className="topbar-brand">
@@ -269,6 +296,9 @@ export function App() {
         <div className="topbar-actions">
           {state.settings.widgetVisibility.clock ? <TopbarClockBadge now={now} /> : null}
           <div className="canvas-dock" aria-label="Dashboard tools">
+            <button type="button" onClick={() => setArranging(value => !value)} aria-label={arranging ? "Finish arranging" : "Arrange widgets"} aria-pressed={arranging}>
+              <LayoutGrid size={17} />
+            </button>
             <button type="button" onClick={() => setSettingsOpen(true)} aria-label="Add widget">
               <Plus size={17} />
             </button>
@@ -289,10 +319,65 @@ export function App() {
         </div>
       </header>
 
-      <div className={`dashboard-grid ${preset.className}`}>
-        {visibleWidgets.map((widgetId) => (
-          <WidgetRenderer key={widgetId} widgetId={widgetId} state={state} updateState={updateState} />
+      {arranging ? (
+        <div className="arrange-bar">
+          <div><strong>Make room for your day</strong><p>Drag a handle onto another piece. Or use the move buttons. Sizes snap to the grid.</p></div>
+          <div className="arrange-actions">
+            <button type="button" className="reset-layout" onClick={() => {
+              updateState(current => ({ ...current, settings: { ...current.settings,
+                widgetOrder: [...templateConfig.widgetOrder], widgetSizes: { ...templateConfig.widgetSizes }
+              }}));
+              setLayoutMessage("Starter layout restored.");
+            }}>Reset layout</button>
+            <button type="button" onClick={() => setArranging(false)}>Done</button>
+          </div>
+        </div>
+      ) : null}
+      <p className="sr-only" role="status">{layoutMessage}</p>
+      <div className={`dashboard-grid layout-custom ${preset.className} ${arranging ? "is-arranging" : ""}`}>
+        {visibleWidgets.map((widgetId, index) => (
+          <div key={widgetId} data-widget-id={widgetId}
+            className={`grid-piece size-${state.settings.widgetSizes[widgetId]} ${dropTarget === widgetId ? "is-drop-target" : ""}`}
+
+          >
+            {arranging ? (
+              <div className="piece-controls" aria-label={`${widgetLabels[widgetId]} layout controls`}>
+                <button type="button" className="drag-handle"
+                  aria-label={`Drag ${widgetLabels[widgetId]}`} title="Drag to move"
+                  onPointerDown={event => {
+                    if (event.button !== 0) return;
+                    dragSource.current = widgetId;
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                  }}
+                  onPointerMove={event => {
+                    if (!dragSource.current) return;
+                    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-widget-id]")?.dataset.widgetId as DashboardWidgetId | undefined;
+                    setDropTarget(target && target !== dragSource.current ? target : null);
+                  }}
+                  onPointerUp={event => {
+                    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-widget-id]")?.dataset.widgetId as DashboardWidgetId | undefined;
+                    if (dragSource.current && target) reorder(dragSource.current, target);
+                    dragSource.current = null;
+                    setDropTarget(null);
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                  }}
+                  onPointerCancel={() => { dragSource.current = null; setDropTarget(null); }}><GripVertical size={18} /></button>
+                <span className="piece-control-name">{widgetLabels[widgetId]}</span>
+                <button type="button" aria-label={`Move ${widgetLabels[widgetId]} earlier`} disabled={index === 0}
+                  onClick={() => reorder(widgetId, visibleWidgets[index - 1])}><ArrowUp size={16} /></button>
+                <button type="button" aria-label={`Move ${widgetLabels[widgetId]} later`} disabled={index === visibleWidgets.length - 1}
+                  onClick={() => reorder(widgetId, visibleWidgets[index + 1])}><ArrowDown size={16} /></button>
+                <label className="piece-size-label"><span className="sr-only">{widgetLabels[widgetId]} size</span>
+                  <select value={state.settings.widgetSizes[widgetId]} onChange={event => resize(widgetId, event.target.value as WidgetSize)}>
+                    <option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option>
+                  </select>
+                </label>
+              </div>
+            ) : null}
+            <WidgetRenderer widgetId={widgetId} state={state} updateState={updateState} now={now} />
+          </div>
         ))}
+        {!visibleWidgets.length ? <div className="dashboard-empty"><h2>A little room to start</h2><p>Choose a piece to make this page yours.</p><button type="button" onClick={() => setSettingsOpen(true)}>Choose widgets</button></div> : null}
       </div>
 
       {settingsOpen ? (
@@ -309,31 +394,24 @@ export function App() {
 }
 
 function maybeRotateArt(state: NookState): NookState {
-  const last = new Date(state.widgets.curatedArt.lastRotatedAt).getTime();
-  if (Number.isNaN(last) || Date.now() - last < ART_ROTATION_INTERVAL_MS) {
-    return state;
-  }
-
-  const currentIndex = curatedArt.findIndex((item) => item.id === state.widgets.curatedArt.currentArtId);
-  const next = curatedArt[(currentIndex + 1) % curatedArt.length] ?? curatedArt[0];
-  return {
-    ...state,
-    widgets: {
-      ...state.widgets,
-      curatedArt: {
-        currentArtId: next.id,
-        lastRotatedAt: new Date().toISOString()
-      }
-    }
-  };
+  const last = new Date(state.widgets.curatedArt.lastRotatedAt);
+  const currentExists = curatedArt.some(item => item.id === state.widgets.curatedArt.currentArtId);
+  if (currentExists && !Number.isNaN(last.getTime()) && localDay(last) === localDay()) return state;
+  const art = dailyItem(curatedArt);
+  if (!art) return state;
+  return { ...state, widgets: { ...state.widgets, curatedArt: {
+    currentArtId: art.id, lastRotatedAt: new Date().toISOString()
+  }}};
 }
 
 function WidgetRenderer({
   widgetId,
   state,
-  updateState
+  updateState,
+  now
 }: {
   widgetId: WidgetId;
+  now: Date;
   state: NookState;
   updateState: (updater: (current: NookState) => NookState) => void;
 }) {
@@ -343,13 +421,11 @@ function WidgetRenderer({
     case "quickLinks":
       return <QuickLinksWidget links={state.widgets.quickLinks.links} />;
     case "quote":
-      return <QuoteWidget />;
+      return <QuoteWidget now={now} />;
     case "personalNote":
       return <PersonalNoteWidget state={state} updateState={updateState} />;
     case "curatedArt":
-      return <CuratedArtWidget state={state} />;
-    case "githubTrending":
-      return <TrendingWidget state={state} updateState={updateState} />;
+      return <CuratedArtWidget state={state} updateState={updateState} />;
     case "clock":
       return null;
   }
@@ -422,12 +498,13 @@ function QuickLinksWidget({ links }: { links: QuickLink[] }) {
   );
 }
 
-function QuoteWidget() {
+function QuoteWidget({ now }: { now: Date }) {
+  const quote = dailyItem(templateConfig.quotes, now);
   return (
     <WidgetCard id="quote" title="Little quote" icon={<Quote size={18} />} hideHeader>
       <div className="quote-note">
-        <p>{templateConfig.quote.text}</p>
-        <span>{templateConfig.quote.author}</span>
+        <p>{quote?.text ?? "Add a quote in the template config."}</p>
+        <span>{quote?.author ?? ""}</span>
         <img className="quote-flower" src={decorFlower} alt="" aria-hidden="true" />
       </div>
     </WidgetCard>
@@ -465,7 +542,10 @@ function PersonalNoteWidget({
   );
 }
 
-function CuratedArtWidget({ state }: { state: NookState }) {
+function CuratedArtWidget({ state, updateState }: {
+  state: NookState; updateState: (updater: (current: NookState) => NookState) => void;
+}) {
+  const [failedImage, setFailedImage] = useState<string | null>(null);
   const art = curatedArt.find((item) => item.id === state.widgets.curatedArt.currentArtId) ?? curatedArt[0];
   const showCaption = state.settings.appearance.showArtCaption;
   const captionDate = useMemo(
@@ -477,130 +557,25 @@ function CuratedArtWidget({ state }: { state: NookState }) {
     [state.widgets.curatedArt.lastRotatedAt]
   );
 
+  function advance() {
+    const next = nextItem(curatedArt, state.widgets.curatedArt.currentArtId);
+    if (next) updateState(current => ({ ...current, widgets: { ...current.widgets, curatedArt: {
+      currentArtId: next.id, lastRotatedAt: new Date().toISOString()
+    }}}));
+  }
+
   return (
     <WidgetCard id="curatedArt" title="Curated art" icon={<Image size={18} />} hideHeader>
-      <a className="art-frame" href={art.sourceUrl || undefined} aria-label={art.sourceUrl ? `Open source for ${art.title}` : art.title}>
-        <img src={art.imageUrl} alt={art.alt} />
+      {art ? <a className="art-frame" href={art.sourceUrl || undefined} aria-label={art.sourceUrl ? `Open source for ${art.title}` : art.title} target="_blank" rel="noreferrer">
+        {failedImage === art.imageUrl ? <div className="art-unavailable"><Image size={28} /><p>Photo unavailable</p><span>Try the next photo or check your connection.</span></div>
+          : <img src={art.imageUrl} alt={art.alt} onError={() => setFailedImage(art.imageUrl)} />}
         {showCaption ? (
           <span className="art-caption" aria-hidden="true">
             {captionDate} / {art.title}
           </span>
         ) : null}
-      </a>
-    </WidgetCard>
-  );
-}
-
-function formatCount(value?: number) {
-  if (value === undefined) return "";
-  return new Intl.NumberFormat(undefined, {
-    notation: "compact",
-    maximumFractionDigits: 1
-  }).format(value);
-}
-
-function isToday(value: string | null) {
-  return value ? localDate() === value.slice(0, 10) : false;
-}
-
-function hasCompleteTrendingCache(repositories: NookState["cache"]["githubTrending"]["repositories"], fetchedAt: string | null) {
-  return isToday(fetchedAt) && repositories.length >= 10 && repositories.some((repo) => repo.stars !== undefined);
-}
-
-function TrendingWidget({
-  state,
-  updateState
-}: {
-  state: NookState;
-  updateState: (updater: (current: NookState) => NookState) => void;
-}) {
-  const cachedTrending = state.cache.githubTrending;
-  const hasFreshTrending = hasCompleteTrendingCache(cachedTrending.repositories, cachedTrending.fetchedAt);
-  const [status, setStatus] = useState<"idle" | "loading" | "error">(
-    hasFreshTrending ? "idle" : "loading"
-  );
-  const [error, setError] = useState<string | null>(null);
-  const repositories = cachedTrending.repositories;
-
-  useEffect(() => {
-    let active = true;
-    if (hasCompleteTrendingCache(repositories, cachedTrending.fetchedAt)) {
-      setStatus("idle");
-      return undefined;
-    }
-
-    async function refreshTrending() {
-      setStatus("loading");
-      const response = await fetchTrendingText();
-      if (!active) return;
-
-      if (!response.ok) {
-        setStatus("error");
-        setError(response.error);
-        updateState((current) => ({
-          ...current,
-          cache: {
-            ...current.cache,
-            githubTrending: {
-              ...current.cache.githubTrending,
-              stale: current.cache.githubTrending.repositories.length > 0
-            }
-          }
-        }));
-        return;
-      }
-
-      const parsedRepos = parseTrendingRepos(response.text).slice(0, 10);
-      if (!parsedRepos.length) {
-        setStatus("error");
-        setError("GitHub Trending returned no repositories.");
-        return;
-      }
-
-      setStatus("idle");
-      setError(null);
-      updateState((current) => ({
-        ...current,
-        cache: {
-          ...current.cache,
-          githubTrending: {
-            repositories: parsedRepos,
-            fetchedAt: new Date().toISOString(),
-            stale: false
-          }
-        }
-      }));
-    }
-
-    void refreshTrending();
-    return () => {
-      active = false;
-    };
-  }, [cachedTrending.fetchedAt, repositories.length, updateState]);
-
-  return (
-    <WidgetCard id="githubTrending" title="Trending repos" icon={<Code2 size={18} />}>
-      <div className="trending-list">
-        {repositories.length ? (
-          repositories.map((repo) => (
-            <a key={repo.id} className="repo-row" href={repo.url} target="_blank" rel="noreferrer">
-              <div>
-                <strong>
-                  {repo.owner}/{repo.name}
-                </strong>
-                <p>{repo.description}</p>
-              </div>
-              <span className="repo-meta">
-                {repo.language ? <span>{repo.language}</span> : null}
-                {repo.stars !== undefined ? <span>{formatCount(repo.stars)} stars</span> : null}
-              </span>
-            </a>
-          ))
-        ) : (
-          <p className="soft-empty">{status === "loading" ? "Checking GitHub Trending..." : "No trending repos yet."}</p>
-        )}
-        {status === "error" && error ? <p className="trending-error">{error}</p> : null}
-      </div>
+      </a> : <p className="soft-empty">Add photos in the template config.</p>}
+      <button type="button" className="next-photo" onClick={advance} disabled={curatedArt.length < 2} aria-label="Next image"><ChevronRight size={16} />Next image</button>
     </WidgetCard>
   );
 }
@@ -705,7 +680,9 @@ function SettingsPanel({
                 onClick={() =>
                   updateState((current) => ({
                     ...current,
-                    settings: { ...current.settings, selectedLayout: preset.id }
+                    settings: { ...current.settings, selectedLayout: preset.id,
+                      widgetSizes: { ...templateConfig.widgetSizes, personalNote: "large", curatedArt: preset.id === "focus" ? "small" : "medium" }
+                    }
                   }))
                 }
               >

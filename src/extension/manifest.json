@@ -3,17 +3,10 @@
   "name": "Nook Template",
   "description": "Your own new tab page. Customize the pieces to make it feel like home.",
   "version": "0.0.1",
-  "background": {
-    "service_worker": "src/background.ts",
-    "type": "module"
-  },
   "chrome_url_overrides": {
     "newtab": "src/app/index.html"
   },
   "permissions": [
     "storage"
-  ],
-  "host_permissions": [
-    "https://github.com/trending*"
   ]
 }

@@ -13,7 +13,6 @@ export const widgetLabels: Record<WidgetId, string> = {
   quickLinks: "Quick links",
   personalNote: "Personal note",
   curatedArt: "Curated art",
-  githubTrending: "GitHub Trending",
   clock: "Clock"
 };
 

@@ -8,7 +8,7 @@ export type LayoutPreset = {
 };
 
 export const widgetLabels: Record<WidgetId, string> = {
-  quote: "Quote",
+  quote: "Quotes and reminders",
   rituals: "Rituals",
   quickLinks: "Quick links",
   personalNote: "Personal note",

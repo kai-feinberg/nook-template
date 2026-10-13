@@ -1,3 +1,4 @@
+import { normalizeWords } from "../data/words.ts";
 import { createDefaultState } from "./defaultState.ts";
 import { normalizeOrder, isWidgetSize, dashboardWidgetIds } from "../layouts/grid.ts";
 import type { NookState } from "./schema.ts";
@@ -38,6 +39,10 @@ export function migrateNookState(stored: unknown): NookState {
   ])) as NookState["settings"]["widgetVisibility"];
   const clean = migrated as NookState & { cache?: unknown };
   delete clean.cache;
+  if (!isRecord(migrated.settings.gridLayouts)) migrated.settings.gridLayouts = {};
+  if (migrated.settings.photoSource !== "personal") migrated.settings.photoSource = "starter";
+  migrated.widgets.dailyWords.items = normalizeWords(migrated.widgets.dailyWords.items);
+  if (migrated.settings.wordsSource !== "personal") migrated.settings.wordsSource = "starter";
   const colorToken = migrated.settings.appearance.background.colorToken as string;
   if (colorToken === "starryNight" || colorToken === "campfireGlow" || colorToken === "moonlit") {
     migrated.settings.appearance.background.colorToken = "nightSky";

@@ -1,9 +1,4 @@
 import {
-  ArrowDown,
-  ArrowUp,
-  GripVertical,
-  LayoutGrid,
-  ChevronRight,
   Check,
   Clock3,
   ExternalLink,
@@ -22,12 +17,14 @@ import {
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { curatedArt } from "../data/curatedArt.ts";
-import { dailyItem, localDay, nextItem } from "../data/rotation.ts";
-import { moveWidget } from "../layouts/grid.ts";
+import { dailyWord } from "../data/words.ts";
+import { dailyItem } from "../data/rotation.ts";
+import { DashboardGrid } from "./DashboardGrid.tsx";
+import { usePhotoLibrary } from "./PhotoLibrary.tsx";
 import { layoutPresets, widgetLabels } from "../layouts/presets.ts";
 import { createDefaultState } from "../state/defaultState.ts";
 import { migrateNookState } from "../state/migrations.ts";
-import type { DashboardWidgetId, NookState, QuickLink, RitualItem, WidgetId, WidgetSize } from "../state/schema.ts";
+import type { NookState, QuickLink, RitualItem, WidgetId } from "../state/schema.ts";
 import { getNookStorage } from "../state/storage/nookStorage.ts";
 import { templateConfig } from "../template.config.ts";
 const { cloud: decorCloud, flower: decorFlower } = templateConfig.decorations;
@@ -95,6 +92,26 @@ function useClock() {
   return now;
 }
 
+function useDailyDate() {
+  const [date, setDate] = useState(() => new Date());
+  useEffect(() => {
+    let timer: number;
+    function refresh() {
+      const current = new Date();
+      setDate(previous => previous.toDateString() === current.toDateString() ? previous : current);
+      const midnight = new Date(current);
+      midnight.setHours(24, 0, 0, 0);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(refresh, midnight.getTime() - current.getTime() + 50);
+    }
+    function onVisible() { if (document.visibilityState === "visible") refresh(); }
+    refresh();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { window.clearTimeout(timer); document.removeEventListener("visibilitychange", onVisible); };
+  }, []);
+  return date;
+}
+
 function WidgetCard({
   id,
   title,
@@ -122,11 +139,7 @@ function WidgetCard({
             </span>
             <h2 id={`${id}-title`}>{title}</h2>
           </div>
-          <span className="widget-handle" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </span>
+
         </header>
       )}
       {children}
@@ -137,12 +150,8 @@ function WidgetCard({
 export function App() {
   const [state, setState] = useState<NookState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [arranging, setArranging] = useState(false);
-  const dragSource = useRef<DashboardWidgetId | null>(null);
-  const [dropTarget, setDropTarget] = useState<DashboardWidgetId | null>(null);
-  const [layoutMessage, setLayoutMessage] = useState("");
   const saveTimer = useRef<number | null>(null);
-  const now = useClock();
+  const now = useDailyDate();
 
   useEffect(() => {
     let active = true;
@@ -150,13 +159,13 @@ export function App() {
     async function boot() {
       const stored = await storage.getState();
       const migrated = migrateNookState(stored);
-      const opened = maybeRotateArt({
+      const opened = {
         ...migrated,
         meta: {
           ...migrated.meta,
           lastOpenedAt: new Date().toISOString()
         }
-      });
+      };
 
       if (active) {
         setState(opened);
@@ -204,31 +213,19 @@ export function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [settingsOpen]);
 
-  const preset = layoutPresets.find((item) => item.id === state?.settings.selectedLayout) ?? layoutPresets[0];
   const visibleWidgets = state?.settings.widgetOrder.filter((id) => state.settings.widgetVisibility[id]) ?? [];
 
   const updateState = useCallback((updater: (current: NookState) => NookState) => {
-    setState((current) => (current ? touch(updater(current)) : current));
+    setState(current => {
+      if (!current) return current;
+      const next = updater(current);
+      return next === current ? current : touch(next);
+    });
   }, []);
 
-  const today = localDay(now);
-  useEffect(() => {
-    setState(current => current ? maybeRotateArt(current) : current);
-  }, [today]);
-
-  function reorder(id: DashboardWidgetId, target: DashboardWidgetId) {
-    updateState(current => ({ ...current, settings: {
-      ...current.settings, widgetOrder: moveWidget(current.settings.widgetOrder, id, target)
-    }}));
-    setLayoutMessage(`${widgetLabels[id]} moved.`);
-  }
-
-  function resize(id: DashboardWidgetId, size: WidgetSize) {
-    updateState(current => ({ ...current, settings: {
-      ...current.settings, widgetSizes: { ...current.settings.widgetSizes, [id]: size }
-    }}));
-    setLayoutMessage(`${widgetLabels[id]} set to ${size}.`);
-  }
+  const renderWidget = useCallback((widgetId: import("../state/schema.ts").DashboardWidgetId) =>
+    state ? <WidgetRenderer widgetId={widgetId} state={state} updateState={updateState} now={now} /> : null,
+    [state, updateState, now]);
 
   async function resetToDefault() {
     const confirmed = window.confirm(`Reset ${templateConfig.brand.name} to its starter dashboard?`);
@@ -294,11 +291,8 @@ export function App() {
           <p className="brand-note">{templateConfig.brand.tagline}</p>
         </div>
         <div className="topbar-actions">
-          {state.settings.widgetVisibility.clock ? <TopbarClockBadge now={now} /> : null}
+          {state.settings.widgetVisibility.clock ? <TopbarClockBadge /> : null}
           <div className="canvas-dock" aria-label="Dashboard tools">
-            <button type="button" onClick={() => setArranging(value => !value)} aria-label={arranging ? "Finish arranging" : "Arrange widgets"} aria-pressed={arranging}>
-              <LayoutGrid size={17} />
-            </button>
             <button type="button" onClick={() => setSettingsOpen(true)} aria-label="Add widget">
               <Plus size={17} />
             </button>
@@ -319,71 +313,9 @@ export function App() {
         </div>
       </header>
 
-      {arranging ? (
-        <div className="arrange-bar">
-          <div><strong>Make room for your day</strong><p>Drag a handle onto another piece. Or use the move buttons. Sizes snap to the grid.</p></div>
-          <div className="arrange-actions">
-            <button type="button" className="reset-layout" onClick={() => {
-              updateState(current => ({ ...current, settings: { ...current.settings,
-                widgetOrder: [...templateConfig.widgetOrder], widgetSizes: { ...templateConfig.widgetSizes }
-              }}));
-              setLayoutMessage("Starter layout restored.");
-            }}>Reset layout</button>
-            <button type="button" onClick={() => setArranging(false)}>Done</button>
-          </div>
-        </div>
-      ) : null}
-      <p className="sr-only" role="status">{layoutMessage}</p>
-      <div className={`dashboard-grid layout-custom ${preset.className} ${arranging ? "is-arranging" : ""}`}>
-        {visibleWidgets.map((widgetId, index) => (
-          <div key={widgetId} data-widget-id={widgetId}
-            className={`grid-piece size-${state.settings.widgetSizes[widgetId]} ${dropTarget === widgetId ? "is-drop-target" : ""}`}
-
-          >
-            {arranging ? (
-              <div className="piece-controls" aria-label={`${widgetLabels[widgetId]} layout controls`}>
-                <button type="button" className="drag-handle"
-                  aria-label={`Drag ${widgetLabels[widgetId]}`} title="Drag to move"
-                  onPointerDown={event => {
-                    if (event.button !== 0) return;
-                    dragSource.current = widgetId;
-                    event.currentTarget.setPointerCapture(event.pointerId);
-                  }}
-                  onPointerMove={event => {
-                    if (!dragSource.current) return;
-                    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-widget-id]")?.dataset.widgetId as DashboardWidgetId | undefined;
-                    setDropTarget(target && target !== dragSource.current ? target : null);
-                  }}
-                  onPointerUp={event => {
-                    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-widget-id]")?.dataset.widgetId as DashboardWidgetId | undefined;
-                    if (dragSource.current && target) reorder(dragSource.current, target);
-                    dragSource.current = null;
-                    setDropTarget(null);
-                    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-                  }}
-                  onPointerCancel={() => { dragSource.current = null; setDropTarget(null); }}><GripVertical size={18} /></button>
-                <span className="piece-control-name">{widgetLabels[widgetId]}</span>
-                <button type="button" aria-label={`Move ${widgetLabels[widgetId]} earlier`} disabled={index === 0}
-                  onClick={() => reorder(widgetId, visibleWidgets[index - 1])}><ArrowUp size={16} /></button>
-                <button type="button" aria-label={`Move ${widgetLabels[widgetId]} later`} disabled={index === visibleWidgets.length - 1}
-                  onClick={() => reorder(widgetId, visibleWidgets[index + 1])}><ArrowDown size={16} /></button>
-                <div className="piece-sizes" role="group" aria-label={`${widgetLabels[widgetId]} size`}>
-                  {(["small", "medium", "large"] as WidgetSize[]).map(size => (
-                    <button key={size} type="button"
-                      aria-label={`Set ${widgetLabels[widgetId]} size to ${size}`}
-                      aria-pressed={state.settings.widgetSizes[widgetId] === size}
-                      onClick={() => resize(widgetId, size)}>
-                      {size[0].toUpperCase() + size.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            <WidgetRenderer widgetId={widgetId} state={state} updateState={updateState} now={now} />
-          </div>
-        ))}
-        {!visibleWidgets.length ? <div className="dashboard-empty"><h2>A little room to start</h2><p>Choose a piece to make this page yours.</p><button type="button" onClick={() => setSettingsOpen(true)}>Choose widgets</button></div> : null}
-      </div>
+      {visibleWidgets.length ? <DashboardGrid state={state} updateState={updateState}>
+        {renderWidget}
+      </DashboardGrid> : <div className="dashboard-empty"><h2>A little room to start</h2><p>Choose a piece to make this page yours.</p><button type="button" onClick={() => setSettingsOpen(true)}>Choose widgets</button></div>}
 
       {settingsOpen ? (
         <SettingsPanel
@@ -396,17 +328,6 @@ export function App() {
     </main>
     </>
   );
-}
-
-function maybeRotateArt(state: NookState): NookState {
-  const last = new Date(state.widgets.curatedArt.lastRotatedAt);
-  const currentExists = curatedArt.some(item => item.id === state.widgets.curatedArt.currentArtId);
-  if (currentExists && !Number.isNaN(last.getTime()) && localDay(last) === localDay()) return state;
-  const art = dailyItem(curatedArt);
-  if (!art) return state;
-  return { ...state, widgets: { ...state.widgets, curatedArt: {
-    currentArtId: art.id, lastRotatedAt: new Date().toISOString()
-  }}};
 }
 
 function WidgetRenderer({
@@ -426,11 +347,11 @@ function WidgetRenderer({
     case "quickLinks":
       return <QuickLinksWidget links={state.widgets.quickLinks.links} />;
     case "quote":
-      return <QuoteWidget now={now} />;
+      return <QuoteWidget state={state} now={now} />;
     case "personalNote":
       return <PersonalNoteWidget state={state} updateState={updateState} />;
     case "curatedArt":
-      return <CuratedArtWidget state={state} updateState={updateState} />;
+      return <CuratedArtWidget state={state} now={now} />;
     case "clock":
       return null;
   }
@@ -503,13 +424,13 @@ function QuickLinksWidget({ links }: { links: QuickLink[] }) {
   );
 }
 
-function QuoteWidget({ now }: { now: Date }) {
-  const quote = dailyItem(templateConfig.quotes, now);
+function QuoteWidget({ state, now }: { state: NookState; now: Date }) {
+  const quote = dailyWord(templateConfig.quotes, state.widgets.dailyWords.items, state.settings.wordsSource, now);
   return (
-    <WidgetCard id="quote" title="Little quote" icon={<Quote size={18} />} hideHeader>
+    <WidgetCard id="quote" title="Daily words" icon={<Quote size={18} />} hideHeader>
       <div className="quote-note">
         <p>{quote?.text ?? "Add a quote in the template config."}</p>
-        <span>{quote?.author ?? ""}</span>
+        {quote?.author ? <span>{quote.author}</span> : null}
         <img className="quote-flower" src={decorFlower} alt="" aria-hidden="true" />
       </div>
     </WidgetCard>
@@ -547,45 +468,25 @@ function PersonalNoteWidget({
   );
 }
 
-function CuratedArtWidget({ state, updateState }: {
-  state: NookState; updateState: (updater: (current: NookState) => NookState) => void;
-}) {
+function CuratedArtWidget({ state, now }: { state: NookState; now: Date }) {
+  const library = usePhotoLibrary();
   const [failedImage, setFailedImage] = useState<string | null>(null);
-  const art = curatedArt.find((item) => item.id === state.widgets.curatedArt.currentArtId) ?? curatedArt[0];
+  const photos = state.settings.photoSource === "personal" && library.photos.length ? library.photos : curatedArt;
+  const art = dailyItem(photos, now);
   const showCaption = state.settings.appearance.showArtCaption;
-  const captionDate = useMemo(
-    () =>
-      new Intl.DateTimeFormat(undefined, {
-        month: "short",
-        day: "numeric"
-      }).format(new Date(state.widgets.curatedArt.lastRotatedAt)),
-    [state.widgets.curatedArt.lastRotatedAt]
-  );
-
-  function advance() {
-    const next = nextItem(curatedArt, state.widgets.curatedArt.currentArtId);
-    if (next) updateState(current => ({ ...current, widgets: { ...current.widgets, curatedArt: {
-      currentArtId: next.id, lastRotatedAt: new Date().toISOString()
-    }}}));
-  }
-
-  return (
-    <WidgetCard id="curatedArt" title="Curated art" icon={<Image size={18} />} hideHeader>
-      {art ? <a className="art-frame" href={art.sourceUrl || undefined} aria-label={art.sourceUrl ? `Open source for ${art.title}` : art.title} target="_blank" rel="noreferrer">
-        {failedImage === art.imageUrl ? <div className="art-unavailable"><Image size={28} /><p>Photo unavailable</p><span>Try the next photo or check your connection.</span></div>
-          : <img src={art.imageUrl} alt={art.alt} onError={() => setFailedImage(art.imageUrl)} />}
-        {showCaption ? (
-          <span className="art-caption" aria-hidden="true">
-            {captionDate} / {art.title}
-          </span>
-        ) : null}
-      </a> : <p className="soft-empty">Add photos in the template config.</p>}
-      <button type="button" className="next-photo" onClick={advance} disabled={curatedArt.length < 2} aria-label="Next image"><ChevronRight size={16} />Next image</button>
-    </WidgetCard>
-  );
+  const captionDate = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(now);
+  return <WidgetCard id="curatedArt" title="Curated art" icon={<Image size={18} />} hideHeader>
+    {state.settings.photoSource === "personal" && !library.ready ? <p className="soft-empty">Loading your photos…</p>
+      : art ? <a className="art-frame" href={art.sourceUrl || undefined} aria-label={art.sourceUrl ? `Open source for ${art.title}` : art.title} target="_blank" rel="noreferrer">
+        {failedImage === art.imageUrl ? <div className="art-unavailable"><Image size={28} /><p>Photo unavailable</p><span>Choose another collection in Settings or check your connection.</span></div>
+          : <img src={art.imageUrl} alt={art.alt} onError={() => setFailedImage(art.imageUrl)} draggable={false} />}
+        {showCaption ? <span className="art-caption" aria-hidden="true">{captionDate} / {art.title}</span> : null}
+      </a> : <p className="soft-empty">Add photos in Settings.</p>}
+  </WidgetCard>;
 }
 
-function TopbarClockBadge({ now }: { now: Date }) {
+function TopbarClockBadge() {
+  const now = useClock();
   const timeParts = useMemo(() => {
     const parts = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).formatToParts(now);
     return {
@@ -623,6 +524,23 @@ function SettingsPanel({
 }) {
   const [linkDraft, setLinkDraft] = useState({ label: "", url: "" });
   const [ritualDraft, setRitualDraft] = useState("");
+  const [wordDraft, setWordDraft] = useState({ text: "", author: "" });
+  function addWord(event: FormEvent) {
+    event.preventDefault();
+    const text = wordDraft.text.trim();
+    if (!text || state.widgets.dailyWords.items.length >= 100) return;
+    updateState(current => ({ ...current,
+      settings: { ...current.settings, wordsSource: "personal" },
+      widgets: { ...current.widgets, dailyWords: { items: [...current.widgets.dailyWords.items,
+        { id: makeId("word"), text, author: wordDraft.author.trim() }] } }
+    }));
+    setWordDraft({ text: "", author: "" });
+  }
+  const library = usePhotoLibrary();
+  const [draggingPhotos, setDraggingPhotos] = useState(false);
+  async function importPhotos(files: File[]) {
+    if (await library.add(files)) updateState(current => ({ ...current, settings: { ...current.settings, photoSource: "personal" } }));
+  }
 
   function addLink(event: FormEvent) {
     event.preventDefault();
@@ -666,7 +584,6 @@ function SettingsPanel({
       <aside className="settings-panel" aria-label={`${templateConfig.brand.name} settings`} onMouseDown={(event) => event.stopPropagation()}>
         <header className="settings-header">
           <div>
-            <p className="eyebrow">Settings</p>
             <h2>Tune your shelf</h2>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Close settings">
@@ -686,7 +603,7 @@ function SettingsPanel({
                   updateState((current) => ({
                     ...current,
                     settings: { ...current.settings, selectedLayout: preset.id,
-                      widgetSizes: { ...templateConfig.widgetSizes, personalNote: "large", curatedArt: preset.id === "focus" ? "small" : "medium" }
+                      widgetSizes: { ...templateConfig.widgetSizes, personalNote: "large", curatedArt: preset.id === "focus" ? "small" : "medium" }, gridLayouts: {}
                     }
                   }))
                 }
@@ -723,6 +640,51 @@ function SettingsPanel({
               </label>
             ))}
           </div>
+        </section>
+
+        <section className="settings-section words-settings">
+          <h3>Quotes and reminders</h3>
+          <p className="settings-help">Add words you want to see. One entry appears each day and stays the same across your tabs.</p>
+          <div className="photo-source-controls">
+            <button type="button" aria-pressed={state.settings.wordsSource === "starter"} onClick={() => updateState(current => ({ ...current, settings: { ...current.settings, wordsSource: "starter" } }))}>Starter words</button>
+            <button type="button" aria-pressed={state.settings.wordsSource === "personal"} disabled={!state.widgets.dailyWords.items.length} onClick={() => updateState(current => ({ ...current, settings: { ...current.settings, wordsSource: "personal" } }))}>My words</button>
+          </div>
+          <form className="word-form" onSubmit={addWord}>
+            <label>Quote or reminder<textarea aria-label="New quote or reminder" rows={3} maxLength={400} value={wordDraft.text} onChange={event => setWordDraft({ ...wordDraft, text: event.target.value })} placeholder="Take one small step today." /></label>
+            <label>Author (optional)<input aria-label="New quote author" maxLength={100} value={wordDraft.author} onChange={event => setWordDraft({ ...wordDraft, author: event.target.value })} placeholder="Leave blank for a personal reminder" /></label>
+            <button type="submit" disabled={!wordDraft.text.trim() || state.widgets.dailyWords.items.length >= 100}>Add quote or reminder</button>
+          </form>
+          <p className="settings-help">{state.widgets.dailyWords.items.length} of 100 entries · Saved on this device. Adding or removing entries can change today's selection.</p>
+          <div className="word-editors">{state.widgets.dailyWords.items.map((entry, index) => <div key={entry.id} className="word-editor">
+            <textarea aria-label={`Quote or reminder ${index + 1}`} rows={2} maxLength={400} value={entry.text} onChange={event => updateState(current => ({ ...current, widgets: { ...current.widgets, dailyWords: { items: current.widgets.dailyWords.items.map(item => item.id === entry.id ? { ...item, text: event.target.value } : item) } } }))} />
+            <div><input aria-label={`Author for entry ${index + 1}`} maxLength={100} value={entry.author} placeholder="Author (optional)" onChange={event => updateState(current => ({ ...current, widgets: { ...current.widgets, dailyWords: { items: current.widgets.dailyWords.items.map(item => item.id === entry.id ? { ...item, author: event.target.value } : item) } } }))} />
+              <button type="button" aria-label={`Remove entry ${index + 1}`} onClick={() => updateState(current => ({ ...current, widgets: { ...current.widgets, dailyWords: { items: current.widgets.dailyWords.items.filter(item => item.id !== entry.id) } } }))}><Trash2 size={16} /></button>
+            </div>
+          </div>)}</div>
+        </section>
+
+        <section className="settings-section">
+          <h3>Your photos</h3>
+          <p className="settings-help">One photo each day. Choose a collection or add photos from your device.</p>
+          <div className="photo-source-controls">
+            <button type="button" aria-pressed={state.settings.photoSource === "starter"} onClick={() => updateState(current => ({ ...current, settings: { ...current.settings, photoSource: "starter" } }))}>Starter photos</button>
+            <button type="button" aria-pressed={state.settings.photoSource === "personal"} disabled={!library.photos.length} onClick={() => updateState(current => ({ ...current, settings: { ...current.settings, photoSource: "personal" } }))}>My photos</button>
+          </div>
+          <label className={`photo-drop-zone ${draggingPhotos ? "is-file-over" : ""}`}
+            onDragOver={event => { event.preventDefault(); setDraggingPhotos(true); }}
+            onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDraggingPhotos(false); }}
+            onDrop={event => { event.preventDefault(); setDraggingPhotos(false); if (!library.busy) void importPhotos(Array.from(event.dataTransfer.files)); }}>
+            <Image size={24} /><strong>{library.busy ? "Saving photos…" : "Choose photos or drop them here"}</strong>
+            <span>JPG, PNG, WebP, AVIF, GIF · Up to 24 photos · 8 MB each</span>
+            <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif,image/gif" aria-label="Choose personal photos" disabled={library.busy}
+              onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ""; if (files.length) void importPhotos(files); }} />
+          </label>
+          <p className="settings-help">Stored only in this browser. Files are not uploaded or added to the repo.</p>
+          {library.error ? <p role="alert" className="photo-error">{library.error}</p> : null}
+          {library.photos.length ? <div className="photo-library">{library.photos.map(photo => <div key={photo.id}>
+            <img src={photo.imageUrl} alt={photo.alt} /><span>{photo.title}</span>
+            <button type="button" disabled={library.busy} aria-label={`Remove photo ${photo.title}`} onClick={() => void library.remove(photo.id)}><Trash2 size={15} /></button>
+          </div>)}</div> : null}
         </section>
 
         <section className="settings-section">

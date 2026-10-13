@@ -1,54 +1,52 @@
 # Build report
 
-## Delivered
+## Current result
 
-Separate local Git repo: `/Users/kai/Desktop/active-projects/Nook Template`.
-The source Nook project was not edited.
+The separate Nook Template repo now provides direct three-dot dragging, bottom-right hover resize handles, live snapped placement previews, and saved layouts for wide, medium, and narrow widths. The previous control bars and Next image button are removed.
 
-- Removed GitHub Trending, its data modules, cached state, extension worker, and host permissions.
-- Removed the fox illustration and decoration.
-- Added seven daily quote reminders and three configurable starter photos.
-- Quotes use the local calendar day. Photos change daily; Next image keeps a manual selection until the next day.
-- Added saved widget order and Small, Medium, and Large sizes. Notes start Large.
-- Arrange widgets exposes drag handles, keyboard-accessible move buttons, and size buttons. Positions snap to the grid.
-- Reset layout restores starter order and sizes while preserving personal content.
-- Added empty-page guidance and a photo failure message.
-- Kept the current visual design and responsive single-column layout.
-- Updated setup and customization docs.
+Settings → Your photos accepts local files through a picker or a drop area. Photo Blobs stay in IndexedDB on the device. Starter images can use remote URLs or bundled imports. See `IMAGES.md` for selection, storage, loading, offline use, and cloneable starter images. The researched library choice is documented in `RESEARCH.md`.
+
+## Performance changes
+
+- The one-second clock update is isolated in the clock badge. It no longer redraws the dashboard. Daily quotes and photos still refresh at local midnight and when the page becomes visible.
+- Grid children, geometry settings, drag settings, resize settings, and callbacks keep stable references.
+- A no-op state update no longer changes the timestamp or schedules a save.
+- Placement previews have no transition delay during interaction; the installed library's default placeholder transition was 100 ms. The browser confirmed the active preview now has a computed transition duration of `0s`.
+- Layout and paint containment reduce the area affected by updates. Active widgets use a smaller shadow; idle visuals stay unchanged.
+- Layout persistence still happens on release, not on every pointer move.
+
+## Validation
+
+- Production build and strict TypeScript check passed.
+- Eleven focused tests passed for local dates, rotation helpers, legacy order, default placement bounds and collisions, invalid coordinates, and photo validation.
+- User tested pointer dragging and resizing successfully, then reported lag. Browser rechecked dragging after the performance changes.
+- Browser confirmed a visible live placeholder and active dragged item with a zero-duration preview transition.
+- Keyboard resize changed the note height from 372 to 428 pixels, then restored it.
+- Local file selection was checked with an agent-created PNG test file. Its image and My photos selection survived a reload. The test photo remains in the preview library and can be removed in Settings.
+- Main-thread metrics were sampled before and after. Before: three scripted 40-move trials recorded 28.7–72.4 ms of task work. After: one native drag recorded 24.8 ms of task work and 10.8 ms of script work. These paths use different event sequences and are not a valid percentage comparison. No FPS or speedup claim is made.
+- Mechanical design scan found only the two inherited Instrument Sans font warnings. The reference typography was retained.
+- Original Nook working tree was not edited.
+
+## Limits
+
+Real touch-device interaction, a live overnight date change, storage-quota failure, local-photo removal, file drop, and unpacked extension installation remain unverified. Escape cancellation is implemented, but not separately exercised after the final correction. Preview tests do not prove extension runtime behavior.
+
+## Daily words and documentation
+
+- Settings now accepts personal quotes and reminders with an optional author. Entries are saved on the device, can be edited or removed, and are selected by local calendar date.
+- Browser checks used a separate `nook-docs.localhost` origin: added two entries, edited one, reloaded, and confirmed both entries and the personal collection selection survived. The user's current notes and layouts were not changed for documentation.
+- Added tests for daily personal-word rotation, empty-collection fallback, optional attribution, and saved-entry checks.
+- A day and night background-generation prompt is saved at `docs/prompts/background-image.md`. No new image was generated.
+- README rewritten with real starter-dashboard and reminder-editor screenshots, clone/setup steps, extension installation, keyboard controls, photo storage, starter config, background loading, data use, and sharing instructions.
+- README local links and screenshot paths were checked. Documentation screenshots contain only starter or agent-written sample content.
 
 ## Run
 
 `pnpm install --frozen-lockfile`, then `pnpm dev`.
-Open the printed URL with `/src/app/index.html`.
+Open the printed Portless URL with `/src/app/index.html`.
 Current preview: `http://nook-template.localhost:1355/src/app/index.html`.
-For Chrome or Edge, run `pnpm build:extension` and load `dist` as an unpacked extension.
-
-## Checks and evidence
-
-- `pnpm test`: six tests passed. Coverage includes same-day selection, local midnight, DST and year boundaries, empty collections, image wraparound, removed image IDs, reorder operations, and removed widget IDs.
-- `pnpm build`: strict TypeScript and production bundle passed.
-- Built manifest declares only storage permission and points to an emitted new tab page. No worker or host permissions remain.
-- Browser: manual Next image advanced the photo and preserved it after reload.
-- Browser: dragged the note onto Rituals; the displayed order changed.
-- Browser: move buttons changed order; Medium note size persisted after reload.
-- Browser: Reset layout restored Large notes and starter order without changing note text.
-- Follow-up: Small, Medium, and Large buttons replaced the menu. Clicking Medium and Large changed the note size and selected state; the build passed.
-- Desktop and 390-pixel narrow layout checked. Narrow document content width matched viewport width; no horizontal overflow.
-- Fixed the observed dark-theme quote contrast issue and replaced the first drag implementation with pointer-based handles after a failed browser drag.
-- Mechanical design scan reported two inherited font-choice warnings for Instrument Sans. The existing font was retained to preserve the reference design; no other findings were reported.
-
-## Limits
-
-- Real overnight time passage was not observed. Calendar behavior was tested with fixed dates; the page checks for a changed day while open and on load.
-- Real touch-device dragging and unpacked extension installation remain unverified. Move buttons provide an alternative to drag.
-- Photo failure and an all-hidden page were implemented but not exercised in the browser.
-- Photos, fonts, and link icons require their external sources. Photos can be replaced with bundled local imports.
-- No remote repository was published. The repo remains local.
+Use `pnpm build:extension` and load `dist` as an unpacked Chrome or Edge extension.
 
 ## User attention
 
-Initial release: one scope question answered.
-This update: two optional questions answered. The user confirmed drag plus size buttons and daily photos plus Next image. The initial size menu was changed to buttons to match that choice.
-Filesystem writes outside the original workspace required sandbox approval. No additional product approval was needed.
-
-See `BUILD_BRIEF.md`, `DECISIONS.md`, and `CUSTOMIZATION.md`.
+The user requested research before the interaction redesign. One research subagent compared official sources. No additional product questions were needed. The user supplied direct drag/resize test feedback, which guided the performance work. Filesystem writes in the requested sibling repo required sandbox approval.

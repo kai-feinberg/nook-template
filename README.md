@@ -1,63 +1,141 @@
 # Nook Template
 
-A new tab page that feels like home. Clone it, edit the starter config, and use Settings to make it yours.
+**A new tab page that feels like home.**
 
-## Start
+A cloneable Chrome and Edge extension with a quiet dashboard. Make room for your notes, favorite links, daily rituals, photos, and words you want to remember. No account, server, or API key is required.
 
-Use Node.js 24 or later and PNPM 10.
+![Nook Template with a large note, rituals, quick links, a photo, and daily words](docs/images/dashboard.png)
+
+## What you can change
+
+- Move widgets with their three-dot handles. A live preview shows where each piece will snap.
+- Resize from the bottom-right corner. The handle appears on hover or keyboard focus, and stays visible on touch devices.
+- Edit your note directly on the page.
+- Add links and rituals in Settings; show or hide each widget.
+- Add your own quotes and reminders, with optional authors. One entry rotates in each day.
+- Choose local photos in Settings or use the starter collection. Photos change daily.
+- Pick a background and light or dark theme.
+
+Your content and layouts stay on the device. Layouts are saved separately for wide, medium, and narrow screens. There is no cloud sync or portable backup yet.
+
+## Start your own copy
+
+Requirements: **Node.js 24 or later** and **PNPM 10**. The repo records PNPM 10.13.1 in `package.json`.
+
+Clone your copy or use **Use this template** when the repository owner has enabled that option on GitHub. Replace the example URL with the real repository URL:
 
 ```sh
+git clone <repository-url> my-nook
+cd my-nook
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the URL printed by Portless, then visit `/src/app/index.html`. The named host is `nook-template.localhost`. Portless can add a port to the URL if its default port is unavailable. For a direct Vite server, use `pnpm dev:direct`.
+Open the URL printed by Portless, then visit `/src/app/index.html`. The named host is `nook-template.localhost`; the URL can include a proxy port. For example:
 
-## Install as a new tab extension
+```text
+http://nook-template.localhost:1355/src/app/index.html
+```
+
+If the named preview cannot start, use `pnpm dev:direct` and open the Vite URL with `/src/app/index.html`.
+
+## Make it your browser's new tab
 
 ```sh
 pnpm build:extension
 ```
 
-1. Open `chrome://extensions` in Chrome or `edge://extensions` in Edge.
-2. Enable Developer mode.
-3. Select **Load unpacked**, then select this repo's `dist` folder.
-4. Open a new tab.
+1. Open `chrome://extensions` in Chrome, or `edge://extensions` in Edge.
+2. Enable **Developer mode**.
+3. Select **Load unpacked**.
+4. Select this repo's **dist** folder.
+5. Open a new tab.
 
-After code changes, build again and select Reload on the extension card. Firefox and Safari packages are outside this release.
+After source changes, build again and select **Reload** on the extension card. Keep the repo and `dist` folder on your computer while using the unpacked extension. If another extension owns your new tab page, disable its new tab override before testing Nook.
 
-## Make it yours
+Firefox and Safari packages are not included. Browser preview checks and production builds have passed; unpacked extension installation has not been verified in this build.
 
-Edit `src/template.config.ts` for the name, tagline, quote collection, starter links, rituals, note, widget order, visible widgets, layout, background, artwork, and decorations. TypeScript checks the available layout and background choices.
+## Arrange your space
 
-Settings lets each user change layouts, backgrounds, widget visibility, links, and rituals. Edit the note on the page. These changes are saved on the device. Code defaults apply on first use or after **Reset to starter dashboard**. Reset deletes personal settings after confirmation. Changes to branding, quotes, art, and widget order apply on each load.
+Drag the three dots at the top right of a widget. The widget follows the pointer, a placeholder shows the snapped location, and nearby pieces move to make room. Drag the bottom-right control to resize. Release to save.
 
-For deeper changes, see [CUSTOMIZATION.md](CUSTOMIZATION.md).
+To work with a keyboard, Tab to a three-dot handle and use arrow keys to move. Use Shift plus arrow keys to resize. You can also focus a resize handle and use arrow keys. Escape cancels an active pointer change when you release the pointer. Normal text selection, typing, and link clicks do not drag the widget.
 
-## Arrange your page
+Settings → Layout offers **Balanced** and **Focus** starters. Choosing one resets the saved grid positions and sizes; it keeps your notes, links, rituals, photos, and daily words.
 
-Select **Arrange widgets** in the top toolbar. Drag a handle onto another piece or use the earlier/later buttons. Select Small, Medium, or Large for each piece, then select Done. Pieces snap to a grid. Notes start at Large. Reset layout restores order and sizes without changing notes, links, or rituals. Mobile uses the saved order in one column.
+## Add quotes and reminders
 
-## Daily content
+1. Open **Settings** with the gear button.
+2. Find **Quotes and reminders**.
+3. Type a quote, thought, or reminder. Add an author if you want one.
+4. Select **Add quote or reminder**. The app selects **My words**.
+5. Edit saved entries below the form, or remove one with its trash button.
 
-Quotes change once per local calendar day. Photos change daily too. **Next image** advances the photo and keeps your choice until the next day. Edit `quotes` and `art` in `src/template.config.ts` to change the collections. An empty collection shows setup guidance. A failed photo shows a recovery message.
+![The Settings editor for adding and editing personal quotes and reminders](docs/images/quotes-reminders.png)
 
-## Data and permissions
+Use **Starter words** to return to the default collection. Personal entries stay saved when you switch collections. There is room for 100 entries, with up to 400 characters each and an optional author of up to 100 characters.
 
-No account, server, API key, or paid service is required. The extension uses `chrome.storage.local`. The web preview uses browser local storage. These stores are separate and do not sync across devices. Personal content and layout stay on the device.
+Selection uses the local calendar date. The same collection shows the same entry in every tab for that day. Entries change at midnight, or when a sleeping tab becomes visible again. Adding or removing entries can change today's selection. Blank entries are skipped; an empty personal collection uses the starter words.
 
-The extension declares only the storage permission. It has no background worker or host permissions. Starter photos load from Unsplash, link icons use Google's favicon service, and fonts use Google Fonts. The browser contacts these services when it loads assets. To use local photos, import them in the config. To use system fonts, remove the CSS font import.
+## Choose your images
 
-## Share your version
+Open **Settings → Your photos**. Use the file picker or drop files into the photo area. Acceptable types are JPG, PNG, WebP, AVIF, and GIF. Choose up to 24 files, at most 8 MB each.
 
-This folder is a separate local Git repo. Create a remote repo, add its URL with `git remote add origin <url>`, then push your branch. On GitHub, enable **Template repository** in repository settings so others can use **Use this template**. You can also provide the clone URL. No remote repo is included in this local build.
+Files are copied into this browser profile's IndexedDB storage. They stay on the device and are not uploaded, added to Git, or shared with people who clone the repo. Switch between **Starter photos** and **My photos**. One photo is selected per local day; there is no Next image button.
 
-## Checks
+The preview and installed extension have separate photo libraries. Browser data clearing or extension removal can delete local photos, so keep the originals. See [the image guide](IMAGES.md) for storage details, offline use, and bundled or remote starter images.
+
+## Customize the template in code
+
+Start with [`src/template.config.ts`](src/template.config.ts). It defines the name, tagline, starter quotes, photos, links, rituals, note, widget visibility and order, starter sizes, background, and decorations.
+
+| Change | File |
+| --- | --- |
+| Starter content and branding | `src/template.config.ts` |
+| Colors, fonts, backgrounds, spacing | `src/app/styles/styles.css` |
+| Widget content and Settings | `src/app/App.tsx` |
+| Drag, resize, keyboard controls | `src/app/DashboardGrid.tsx` |
+| Initial grid placement | `src/layouts/placement.ts` |
+| Extension name and description | `src/extension/manifest.json` |
+| Browser page title | `src/app/index.html` |
+
+Saved personal settings take priority over starter defaults. **Reset to starter dashboard** restores defaults and deletes saved notes, links, rituals, and personal words after confirmation. It switches to Starter photos, but leaves local photo files in the library. A config change does not silently overwrite personal content.
+
+Edit starter quotes and image collections in the config when you want them to ship with every clone. Put shareable image files in `src/app/assets/photos/` and import them. Read [CUSTOMIZATION.md](CUSTOMIZATION.md) for component changes and [IMAGES.md](IMAGES.md) for examples.
+
+When running multiple clones at once, give each a different Portless name in the `dev` script. Brand changes also need an updated manifest name, HTML title, and package name.
+
+## Generate a background
+
+A reusable day and night wallpaper prompt is saved in [docs/prompts/background-image.md](docs/prompts/background-image.md). The file includes composition guidance, export suggestions, and the CSS needed to load the generated result. It creates a quiet background behind the widgets; it does not replace the daily photo collection. No new background image has been generated yet.
+
+## Data and network access
+
+The extension declares only the **storage** permission. It has no background worker or host permissions. Personal settings use `chrome.storage.local` in the extension and `localStorage` in the preview. Photos use IndexedDB.
+
+The starter photo collection loads from Unsplash. Fonts load from Google Fonts, and quick-link icons use Google's favicon service. Those assets contact their source services when loaded. For offline photos, use bundled imports or selected local files. Use system fonts instead of the CSS font import if you want offline font loading.
+
+## Checks and useful commands
 
 ```sh
-pnpm test
-pnpm typecheck
-pnpm build
+pnpm test              # focused date, layout, and input checks
+pnpm typecheck         # strict TypeScript check
+pnpm build             # production extension output in dist
+pnpm dev               # named local browser preview
+pnpm dev:direct        # direct Vite preview
 ```
 
-See [BUILD_REPORT.md](BUILD_REPORT.md) for checks run on this version.
+[BUILD_REPORT.md](BUILD_REPORT.md) records validation and unverified checks. [RESEARCH.md](RESEARCH.md) explains the grid and image-storage choices. [BUILD_BRIEF.md](BUILD_BRIEF.md) and [DECISIONS.md](DECISIONS.md) record the product scope.
+
+## Share the template
+
+This is a local Git repo. Create a remote repository, add its URL, and push:
+
+```sh
+git remote add origin <your-new-repository-url>
+git push -u origin main
+```
+
+On GitHub, enable **Template repository** in repository settings to provide **Use this template**. Publish only source and assets you can share. `node_modules`, build output, and environment files are excluded from Git. The current local repo has no published remote.
+
+Code license: [ISC](LICENSE). Third-party packages keep their own licenses. Check image rights before including images in a published template.

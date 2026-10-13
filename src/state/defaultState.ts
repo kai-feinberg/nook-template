@@ -12,6 +12,9 @@ export const defaultState: NookState = {
     widgetVisibility: defaultWidgetVisibility,
     widgetOrder: templateConfig.widgetOrder,
     widgetSizes: templateConfig.widgetSizes,
+    gridLayouts: {},
+    photoSource: "starter",
+    wordsSource: "starter",
     appearance: {
       background: {
         type: "solid",
@@ -22,6 +25,7 @@ export const defaultState: NookState = {
     }
   },
   widgets: {
+    dailyWords: { items: [] },
     rituals: {
       items: templateConfig.rituals.map((label, index) => ({
         id: `ritual-${index}`, label, createdAt: now, updatedAt: now

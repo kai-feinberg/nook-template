@@ -11,6 +11,8 @@ export type WidgetId =
 export type DashboardWidgetId = Exclude<WidgetId, "clock">;
 export type WidgetSize = "small" | "medium" | "large";
 
+export type GridPlacement = { i: DashboardWidgetId; x: number; y: number; w: number; h: number };
+
 export type NookState = {
   schemaVersion: 1;
   settings: NookSettings;
@@ -23,6 +25,9 @@ export type NookSettings = {
   widgetVisibility: Record<WidgetId, boolean>;
   widgetOrder: DashboardWidgetId[];
   widgetSizes: Record<DashboardWidgetId, WidgetSize>;
+  gridLayouts: Record<string, GridPlacement[]>;
+  photoSource: "starter" | "personal";
+  wordsSource: "starter" | "personal";
   appearance: {
     background: {
       type: "solid";
@@ -34,11 +39,14 @@ export type NookSettings = {
 };
 
 export type WidgetState = {
+  dailyWords: { items: WordEntry[] };
   rituals: RitualsWidgetState;
   quickLinks: QuickLinksWidgetState;
   personalNote: PersonalNoteWidgetState;
   curatedArt: CuratedArtWidgetState;
 };
+
+export type WordEntry = { id: string; text: string; author: string };
 
 export type RitualItem = {
   id: string;

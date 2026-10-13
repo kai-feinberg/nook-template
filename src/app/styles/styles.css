@@ -1453,72 +1453,73 @@ textarea {
   }
 }
 
-/* Saved, constrained layout. Auto-placement follows the same order as the DOM. */
-.grid-piece { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); }
-.grid-piece.size-small { grid-column: span 4; grid-row: span 3; }
-.grid-piece.size-medium { grid-column: span 4; grid-row: span 4; }
-.grid-piece.size-large { grid-column: span 8; grid-row: span 5; }
-.grid-piece > .widget-card { height: 100%; min-height: 0; margin: 0; }
-.grid-piece .widget-personalNote { display: flex; flex-direction: column; }
-.grid-piece .note-field { flex: 1; width: 100%; height: 0; min-height: 0; overflow: auto; }
-.grid-piece .quick-links, .grid-piece .ritual-list { max-height: calc(100% - 52px); overflow: auto; }
-.grid-piece .widget-curatedArt { grid-template-rows: minmax(0, 1fr) auto; gap: 16px; padding: 24px; }
-.grid-piece .art-frame { width: min(100%, 250px); max-height: 100%; aspect-ratio: 1; }
-.grid-piece .art-frame img { height: 100%; min-height: 0; aspect-ratio: auto; }
-.grid-piece .quote-note { max-height: 100%; overflow: auto; }
-.grid-piece .quote-note p { padding-right: 28px; overflow-wrap: anywhere; }
-.next-photo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 16px; border: 1px solid var(--card-border); border-radius: 24px; background: var(--field-bg); color: var(--soft-ink); font-size: .8rem; font-weight: 600; }
-.next-photo:disabled { opacity: .5; cursor: default; }
+
+/* Direct, constrained placement. Content stays usable outside the drag handles. */
+.direct-grid-shell { position: relative; z-index: 1; width: min(1380px, 100%); margin: 0 auto 64px; }
+.direct-grid-piece { min-width: 0; min-height: 0; }
+.direct-grid-piece > .widget-card { width: 100%; height: 100%; min-height: 0; margin: 0; transform: none; }
+.direct-grid-piece > .widget-card:hover { transform: none; }
+.direct-grid-piece .widget-personalNote { display: flex; flex-direction: column; }
+.direct-grid-piece .note-field { flex: 1; width: 100%; height: 0; min-height: 0; overflow: auto; }
+.direct-grid-piece .widget-quickLinks, .direct-grid-piece .widget-rituals { display: flex; flex-direction: column; }
+.direct-grid-piece .widget-header { flex-shrink: 0; padding-right: 38px; }
+.direct-grid-piece .quick-links, .direct-grid-piece .ritual-list { flex: 1; min-height: 0; max-height: none; overflow-y: auto; align-content: start; }
+.direct-grid-piece .widget-curatedArt { display: flex; align-items: center; justify-content: center; padding: 28px; container-type: size; }
+.direct-grid-piece .art-frame { width: min(100%, calc(100cqh - 12px)); max-width: 360px; height: auto; aspect-ratio: 1; flex: 0 0 auto; }
+.direct-grid-piece .art-frame img { height: 100%; min-height: 0; aspect-ratio: auto; }
+.direct-grid-piece .quote-note { max-height: 100%; overflow: auto; }
+.direct-grid-piece .quote-note p { padding-right: 28px; overflow-wrap: anywhere; }
+.widget-drag-handle { position: absolute; z-index: 4; right: 20px; top: 18px; display: flex; justify-content: center; align-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; color: var(--widget-heading); background: color-mix(in oklch, var(--card-highlight) 60%, transparent); cursor: grab; touch-action: none; }
+.widget-drag-handle:active { cursor: grabbing; }
+.widget-drag-handle:hover { background: var(--field-bg); }
+.widget-drag-handle:focus-visible, .widget-resize-handle:focus-visible { outline: 2px solid var(--widget-heading); outline-offset: 3px; }
+.widget-resize-handle.react-resizable-handle { width: 38px; height: 38px; right: 8px; bottom: 8px; display: flex; justify-content: center; align-items: center; padding: 0; border: 0; border-radius: 12px; background: var(--field-bg); color: var(--widget-heading); cursor: nwse-resize; opacity: 0; touch-action: none; }
+.widget-resize-handle::after { display: none; }
+.direct-grid-piece:hover .widget-resize-handle, .direct-grid-piece:focus-within .widget-resize-handle, .react-grid-item.resizing .widget-resize-handle { opacity: 1; }
+.direct-grid .react-grid-placeholder { background: var(--field-bg); border: 2px dashed var(--soft-ink); border-radius: var(--radius-lg); opacity: .75; z-index: 0; }
+.direct-grid .react-grid-item.react-draggable-dragging { z-index: 10; }
+.direct-grid .react-grid-item.react-draggable-dragging > .widget-card { box-shadow: 0 24px 48px #10182755; }
+.is-editing-grid .widget-card, .is-editing-grid .art-frame { transition: none; }
 .art-unavailable { aspect-ratio: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; text-align: center; color: #3f4146; background: #f4efe3; padding: 12px; }
 .art-unavailable p { margin: 0; font-weight: 600; }
 .art-unavailable span { font-size: .8rem; }
-.arrange-bar { width: min(1380px, 100%); margin: 0 auto 24px; position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.arrange-bar strong { font-size: 1rem; color: var(--soft-ink); }
-.arrange-bar p { margin: 8px 0 0; font-size: .85rem; color: var(--soft-ink); max-width: 60ch; }
-.arrange-bar button, .dashboard-empty button { padding: 10px 22px; min-height: 44px; border-radius: 24px; background: var(--soft-ink); color: var(--cloud-paper); border: 0; }
-.is-arranging .grid-piece { grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
-.piece-controls { display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px; color: var(--soft-ink); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; }
-.piece-control-name { flex: 1; min-width: 0; font-size: .75rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.piece-controls button, .drag-handle { display: inline-flex; align-items: center; justify-content: center; width: 36px; min-height: 36px; padding: 0; flex: 0 0 auto; border: 0; border-radius: 8px; color: inherit; background: transparent; }
-.piece-controls button:hover { background: var(--field-bg); }
-.piece-controls button:disabled { opacity: .3; cursor: default; }
-.drag-handle { cursor: grab; }
-.drag-handle:active { cursor: grabbing; }
-.piece-size-label select { min-height: 36px; max-width: 88px; padding: 4px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--field-bg); color: var(--soft-ink); font: inherit; font-size: .75rem; }
-.is-drop-target { outline: 2px dashed var(--soft-ink); outline-offset: 5px; border-radius: var(--radius-lg); }
-.dashboard-empty { grid-column: 1 / -1; padding: 64px 16px; text-align: center; color: var(--soft-ink); }
+.dashboard-empty { position: relative; z-index: 1; padding: 64px 16px; text-align: center; color: var(--soft-ink); }
 .dashboard-empty p { margin: 16px 0 24px; }
+.dashboard-empty button { padding: 10px 22px; min-height: 44px; border-radius: 24px; background: var(--soft-ink); color: var(--cloud-paper); border: 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-select:focus-visible, .piece-controls button:focus-visible { outline: 2px solid var(--soft-ink); outline-offset: 3px; }
-.is-arranging .widget-card:hover { transform: none; }
-@media (max-width: 980px) {
-  .grid-piece.size-small, .grid-piece.size-medium { grid-column: span 3; }
-  .grid-piece.size-large { grid-column: span 6; }
-}
-@media (max-width: 680px) {
-  .grid-piece { margin-bottom: 20px; }
-  .grid-piece.size-small { height: 300px; }
-  .grid-piece.size-medium { height: 380px; }
-  .grid-piece.size-large { height: 460px; }
-  .arrange-bar { align-items: flex-start; }
-  .arrange-bar p { font-size: .8rem; }
-  .canvas-dock { max-width: 100%; }
-  .canvas-dock button { min-height: 40px; width: 40px; }
-  .piece-controls button, .drag-handle { min-height: 40px; width: 40px; }
-}
+.settings-help { color: var(--soft-ink); line-height: 1.5; font-size: .85rem; margin: 12px 0; }
+.photo-source-controls { display: flex; gap: 8px; margin: 16px 0; }
+.photo-source-controls button { flex: 1; padding: 10px; min-height: 44px; border: 1px solid var(--card-border); border-radius: 12px; color: var(--soft-ink); background: var(--field-bg); }
+.photo-source-controls button[aria-pressed="true"] { background: var(--soft-ink); color: var(--cloud-paper); }
+.photo-source-controls button:disabled { opacity: .4; cursor: default; }
+.photo-drop-zone { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; border: 1px dashed var(--soft-ink); border-radius: 16px; padding: 24px 16px; text-align: center; color: var(--soft-ink); background: var(--field-bg); cursor: pointer; }
+.photo-drop-zone span { font-size: .75rem; line-height: 1.5; }
+.photo-drop-zone input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.photo-drop-zone:focus-within, .photo-drop-zone.is-file-over { outline: 2px solid var(--soft-ink); outline-offset: 4px; }
+.photo-library { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.photo-library > div { position: relative; min-width: 0; }
+.photo-library img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
+.photo-library span { display: block; font-size: .7rem; margin-top: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.photo-library button { position: absolute; right: 4px; top: 4px; min-height: 32px; width: 32px; display: flex; align-items: center; justify-content: center; background: var(--cloud-paper); color: #26282c; border: 0; border-radius: 50%; }
+.photo-error { color: #aa2525; font-size: .85rem; line-height: 1.5; }
+@media (hover: none) { .widget-resize-handle.react-resizable-handle { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .direct-grid .react-grid-item { transition: none; } }
 
-.grid-piece .widget-quickLinks, .grid-piece .widget-rituals { display: flex; flex-direction: column; }
-.grid-piece .widget-header { flex-shrink: 0; }
-.grid-piece .quick-links, .grid-piece .ritual-list { flex: 1; min-height: 0; max-height: none; overflow-y: auto; align-content: start; }
-.drag-handle { touch-action: none; user-select: none; }
-.bg-nightSky .piece-controls, .bg-nightSkyHalftone .piece-controls { background: #233246; }
+/* Pointer feedback stays immediate; only settled positions ease into place. */
+.direct-grid .react-grid-item.cssTransforms { transition: transform 120ms ease-out; }
+.is-editing-grid .direct-grid .react-grid-item, .direct-grid .react-grid-placeholder { transition: none; }
+.direct-grid-piece { contain: layout style; }
+.direct-grid-piece > .widget-card { contain: paint; }
+.is-editing-grid .react-draggable-dragging > .widget-card,
+.is-editing-grid .resizing > .widget-card { box-shadow: 0 8px 16px #10182733; }
+@media (prefers-reduced-motion: reduce) { .direct-grid .react-grid-item.cssTransforms { transition: none; } }
 
-.arrange-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.arrange-actions .reset-layout { background: var(--field-bg); color: var(--soft-ink); border: 1px solid var(--card-border); }
-@media (max-width: 680px) { .arrange-bar { flex-wrap: wrap; } .arrange-actions { width: 100%; justify-content: flex-end; } }
-
-.piece-controls { flex-wrap: wrap; }
-.piece-sizes { display: flex; flex: 0 0 100%; gap: 4px; padding: 0 4px 4px; }
-.piece-sizes button { flex: 1; width: auto; min-height: 36px; font-size: .75rem; border: 1px solid var(--card-border); }
-.piece-sizes button[aria-pressed="true"] { color: var(--cloud-paper); background: var(--soft-ink); }
-@media (max-width: 680px) { .piece-sizes button { min-height: 40px; } }
+.word-form { display: grid; gap: 14px; }
+.word-form label { display: grid; gap: 8px; font-size: .8rem; color: var(--soft-ink); }
+.word-form textarea, .word-editor textarea { min-height: 0; padding: 12px; line-height: 1.5; font-family: inherit; resize: vertical; }
+.word-form button { min-height: 44px; padding: 10px 16px; border: 0; border-radius: 12px; color: var(--cloud-paper); background: var(--soft-ink); font-weight: 600; }
+.word-form button:disabled { opacity: .4; cursor: default; }
+.word-editors { max-height: 440px; overflow: auto; }
+.word-editor { padding: 16px 0; border-bottom: 1px solid var(--card-border); }
+.word-editor > div { display: flex; gap: 8px; margin-top: 8px; }
+.word-editor button { width: 44px; min-height: 44px; flex: 0 0 auto; display: flex; justify-content: center; align-items: center; border: 1px solid var(--card-border); border-radius: 12px; color: var(--soft-ink); background: var(--field-bg); }

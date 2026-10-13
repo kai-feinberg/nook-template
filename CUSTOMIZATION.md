@@ -22,12 +22,20 @@ Edit `src/app/styles/styles.css`. Color tokens and theme classes set the backgro
 
 Change the config brand, the title in `src/app/index.html`, package name in `package.json`, and name and description in `src/extension/manifest.json`. Change the Portless host in the dev script when running multiple clones. Change the storage key in `src/state/storage/nookStorage.ts` if two web apps share an origin.
 
-## Scope
+## Layout
 
-This starter uses a constrained grid with Small, Medium, and Large widget sizes. Users can drag to reorder or use move buttons. These controls save the layout locally. Balanced and Focus set size presets. On narrow screens, widgets stack in the saved order.
+The dashboard uses React Grid Layout 2.3.0. Drag the three dots to move a piece; drag the hover control at the bottom right to resize. A live placeholder shows the snapped location. Each width group saves its own grid coordinates. Minimum sizes keep controls usable.
 
-## Rotation
+`src/app/DashboardGrid.tsx` owns interaction and keyboard controls. `src/layouts/placement.ts` owns default placement and saved-coordinate checks. Starter `widgetSizes` still seeds new layouts. Balanced and Focus reset the saved grid and seed different default sizes.
 
-Quotes are picked by local calendar date. Photos rotate daily and can be advanced manually. Add or remove entries in the config arrays. Use unique photo IDs. Saved photo IDs that no longer exist fall back to a current collection entry.
+## Photos and rotation
 
-The quote collection contains original starter reminders; replace them with your own text or properly attributed quotes.
+See [IMAGES.md](IMAGES.md) for user file selection, local storage, and bundled imports. Quotes and photos use the local calendar date. The quote collection contains original starter reminders.
+
+## Personal words
+
+Settings → Quotes and reminders saves personal entries in `widgets.dailyWords.items`. The starter collection still comes from the template config. `src/data/words.ts` checks saved entries and selects the daily value. Reset clears personal entries but does not alter the config.
+
+## Background prompt
+
+See [docs/prompts/background-image.md](docs/prompts/background-image.md) for a reusable image prompt and loading instructions.

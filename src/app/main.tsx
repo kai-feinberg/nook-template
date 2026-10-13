@@ -1,10 +1,11 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { PhotoLibraryProvider } from "./PhotoLibrary.tsx";
 import { App } from "./App.tsx";
 import "./styles/styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <PhotoLibraryProvider><App /></PhotoLibraryProvider>
   </StrictMode>
 );

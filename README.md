@@ -147,17 +147,15 @@ pnpm dev               # named local browser preview
 pnpm dev:direct        # direct Vite preview
 ```
 
-[BUILD_REPORT.md](BUILD_REPORT.md) records validation and unverified checks. [RESEARCH.md](RESEARCH.md) explains the grid and image-storage choices. [BUILD_BRIEF.md](BUILD_BRIEF.md) and [DECISIONS.md](DECISIONS.md) record the product scope.
-
 ## Share the template
 
-This is a local Git repo. Create a remote repository, add its URL, and push:
+To publish your copy, create a remote repository, add its URL, and push:
 
 ```sh
 git remote add origin <your-new-repository-url>
 git push -u origin main
 ```
 
-On GitHub, enable **Template repository** in repository settings to provide **Use this template**. Publish only source and assets you can share. `node_modules`, build output, and environment files are excluded from Git. The current local repo has no published remote.
+On GitHub, enable **Template repository** in repository settings to provide **Use this template**. Publish only source and assets you can share. Dependencies, build output, local environment files, tool caches, and internal planning notes are excluded from Git. Keep the README, customization and image guides, screenshots, and background image prompt with the template.
 
 Code license: [ISC](LICENSE). Third-party packages keep their own licenses. Check image rights before including images in a published template.

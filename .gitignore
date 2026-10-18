@@ -1,8 +1,39 @@
+# Dependencies and package caches
 node_modules/
+.pnpm-store/
+
+# Build output and tool caches
 dist/
 dist-dev/
 .vite/
-.DS_Store
-*.log
-.env*
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+
+# Local environment files
+.env
+.env.*
 !.env.example
+!.env.*.example
+
+# Internal planning notes and agent settings
+/BUILD_BRIEF.md
+/BUILD_REPORT.md
+/DECISIONS.md
+/RESEARCH.md
+/AGENTS.md
+/CLAUDE.md
+.codex/
+.agents/
+
+# Editor, operating system, and temporary files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+*.swo
+*~

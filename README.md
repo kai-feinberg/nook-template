@@ -158,4 +158,4 @@ git push -u origin main
 
 On GitHub, enable **Template repository** in repository settings to provide **Use this template**. Publish only source and assets you can share. Dependencies, build output, local environment files, tool caches, and internal planning notes are excluded from Git. Keep the README, customization and image guides, screenshots, and background image prompt with the template.
 
-Code license: [ISC](LICENSE). Third-party packages keep their own licenses. Check image rights before including images in a published template.
+License: [MIT, with the existing ISC source notice retained](LICENSE). Third-party packages keep their own licenses. Check image rights before including images in a published template.
